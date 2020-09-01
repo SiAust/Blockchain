@@ -22,6 +22,10 @@ public class Block {
         return hash;
     }
 
+    public String getPrevBlockHash() {
+        return prevBlockHash;
+    }
+
     public long getTimestamp() {
         return timestamp;
     }
@@ -41,7 +45,7 @@ public class Block {
         return "Block:\n"
                 + "Id: " + id
                 + "\nTimestamp: " + timestamp
-                + "\nHash of the previous block:\n" + prevBlockHash // todo: placeholder
+                + "\nHash of the previous block:\n" + prevBlockHash
                 + "\nHash of the block:\n" + hash;
     }
 }

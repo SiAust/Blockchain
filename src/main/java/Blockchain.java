@@ -4,7 +4,7 @@ public class Blockchain {
 
     public Blockchain() {
         this.blockchain = new Block[10];
-        addBlock(); // creates initial starting block?
+        addBlock(); // creates initial starting block
     }
 
     public void addBlock() {
@@ -18,9 +18,24 @@ public class Blockchain {
         }
     }
 
-    private boolean validate() {
-        // todo: validate the blockchain
+    public boolean validate() {
+        for (int i = blockchain.length -1; i > 0; i--) {
+            if (!blockchain[i].getPrevBlockHash().equals(blockchain[i - 1].getHash())) {
+                return false;
+            }
+        }
         return true;
+    }
+
+    public void printValidation() {
+        for (int i = blockchain.length -1; i > 0; i--) {
+            System.out.printf("block id: %d prevHash: %s" + //todo: fix first line offset
+                            "\nblock id: %d hash: %68s\n\n",
+                    (i + 1),
+                    blockchain[i].getPrevBlockHash(),
+                    i,
+                    blockchain[i - 1].getHash());
+        }
     }
 
     private Block findLastBlock() {

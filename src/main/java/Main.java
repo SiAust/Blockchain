@@ -10,6 +10,7 @@ public class Main {
         }
 
         System.out.println(blockchain);
+        System.out.println("Blockchain valid? " + blockchain.validate());
     }
 
 }
