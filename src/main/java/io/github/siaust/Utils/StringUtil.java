@@ -1,3 +1,5 @@
+package io.github.siaust.Utils;
+
 import java.security.MessageDigest;
 
 public class StringUtil {
