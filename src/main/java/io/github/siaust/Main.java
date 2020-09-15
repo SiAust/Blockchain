@@ -15,7 +15,7 @@ public class Main {
         controller.initialiseBlockchain();
         controller.mineBlockchain();
         controller.updateView();
-        controller.printBlockchainValidation(); // todo: remove for test
+//        controller.printBlockchainValidation();
 
     }
 }

@@ -1,37 +1,29 @@
 package io.github.siaust.Model;
 
 import io.github.siaust.Exception.InvalidBlockchain;
+import io.github.siaust.Utils.MinerExecutor;
 import io.github.siaust.Utils.SerializationUtils;
 
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.Scanner;
 
 public class Blockchain implements Serializable {
 
     private static final long serialVersionUID = -6810975215568720649L;
     private Block[] blockchain;
-    private int zeroPrefix;
+    private int zeroPrefix = 0;
     private final String FILEPATH = ".\\blockchain.data";
 
     public Blockchain() {
     }
 
     public void initialise() {
-
         if (deserialize()) return;
-
-        inputZeroPrefix();
-//        System.out.println("Enter how many zeros the hash must start with: ");
-//        zeroPrefix = new Scanner(System.in).nextInt();
-
         this.blockchain = new Block[10];
-//        addBlock(1); // creates initial starting block
-
     }
 
     public void createBlocks() {
-        addBlock(10);
+        addBlock(5);
         if (!serialize()) System.out.println("Serialization failed.");
     }
 
@@ -48,20 +40,11 @@ public class Blockchain implements Serializable {
         try {
             Blockchain deserialized = (Blockchain) SerializationUtils.deserialize(FILEPATH);
             blockchain = deserialized.getBlockchain().clone();
-//            zeroPrefix = deserialized.zeroPrefix;
-            inputZeroPrefix();
+            zeroPrefix = deserialized.zeroPrefix;
             return true;
         } catch (IOException | ClassNotFoundException e) {
             System.out.println("No blockchain found on device.");
-//            e.printStackTrace();
             return false;
-        }
-    }
-
-    private void inputZeroPrefix() {
-        System.out.println("Enter how many zeros the hash must start with: ");
-        try (Scanner scanner = new Scanner(System.in)) {
-            zeroPrefix = scanner.nextInt();
         }
     }
 
@@ -70,33 +53,52 @@ public class Blockchain implements Serializable {
     }
 
     public void addBlock(int repetitions) {
-
         for (int i = 0; i < repetitions; i++) {
-            if (findLastBlock() == null) {
-                blockchain[0] = new Block(1, "0", zeroPrefix);
+            if (findLastBlock() == null) { // no blocks exist, serialization hasn't happened yet
+                blockchain[0] = MinerExecutor.mineBlocks(zeroPrefix, null);
+                setZeroPrefix(blockchain[0].getGenerationTime());
             } else {
                 if (findLastBlock().getId() == blockchain.length) {
                     resizeArray();
                 }
-                blockchain[findLastBlock().getId()] = new Block(
-                        findLastBlock().getId() + 1,
-                        findLastBlock().getHash(),
-                        zeroPrefix);
+                Block block = MinerExecutor.mineBlocks(zeroPrefix, findLastBlock());
+                try {
+                    if (isValid(block)) {
+                        blockchain[findLastBlock().getId()] = block;
+                        setZeroPrefix(findLastBlock().getGenerationTime());
+                    }
+                } catch (InvalidBlockchain invalidBlockchain) {
+                    System.out.println(invalidBlockchain.getMessage());
+                    // todo: Temp validation solution? If invalid, do ??
+                }
             }
         }
     }
 
-    public boolean validate() throws InvalidBlockchain { // todo: implement
-        for (int i = blockchain.length - 1; i > 0; i--) {
-            if (!blockchain[i].getPrevBlockHash().equals(blockchain[i - 1].getHash())) {
-
-//                throw new InvalidBlockchain("block @ index " + i  + " does not validate with" +
-//                        "block @ index " + (i -1));
-
-                return false;
-            }
+    /** Sets the zeroPrefix field according to the length of time a Block is generating.
+     * This should stabilise the generation time to prevent exponential growth of
+     * generating a Block. Replaces user input defined zeroPrefix. */
+    private void setZeroPrefix(int generationTime) {
+        if (generationTime < 15) {
+            zeroPrefix++;
         }
-        return true;
+        if (generationTime > 60) {
+            zeroPrefix--;
+        }
+
+    }
+
+    /**
+     * Validate each block by comparing this Block's previousHash field to the preceeding Block's
+     * hash field in the Blockchain array
+     * @param block the generated Block must be valid before being placed in the Blockchain
+     * @exception  InvalidBlockchain exception */
+    private boolean isValid(Block block) throws InvalidBlockchain {
+        if (block.getPrevBlockHash().equals(blockchain[block.getId() - 2].getHash())) {
+            return true;
+        } else {
+            throw new InvalidBlockchain();
+        }
     }
 
     private Block findLastBlock() {
