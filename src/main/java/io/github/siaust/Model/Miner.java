@@ -15,10 +15,16 @@ public class Miner implements Callable<Block> {
     }
 
     @Override
-    public Block call() throws Exception {
-        return new Block(previousBlock == null ? 1 : previousBlock.getId() + 1
-                , previousBlock == null ? "0" : previousBlock.getHash()
-                , zeroPrefix
-                , Thread.currentThread().getName().split("-")[3]);
+    public Block call() {
+        try {
+            return new Block(previousBlock == null ? 1 : previousBlock.getId() + 1
+                    , previousBlock == null ? "0" : previousBlock.getHash()
+                    , zeroPrefix
+                    , Thread.currentThread().getName().split("-")[3]);
+        } catch (InterruptedException e) {
+//            System.out.println(e.getMessage());
+//            e.printStackTrace();
+        }
+        return null;
     }
 }

@@ -17,21 +17,25 @@ public class Block implements Serializable {
     private final String minerID;
 
     private int generationTime;
-    private String zeroString;
+    private String nAdjustmentString;
 
     private final int zeroPrefix;
     private int magicNumber;
 
-    public Block(int id, String prevBlockHash, int zeroPrefix, String minerID) {
+    private String messages;
+
+    public Block(int id, String prevBlockHash, int zeroPrefix, String minerID) throws InterruptedException {
         this.zeroPrefix = zeroPrefix;
         timestamp = new Date().getTime();
         this.id = id;
         this.prevBlockHash = prevBlockHash;
         hash = generateHash();
         this.minerID = minerID;
+        messages = formatMessages();
     }
 
-    private String generateHash() {
+    private String generateHash() throws InterruptedException {
+        Thread.sleep(1);
         LocalTime startTime = LocalTime.now();
 
         Random random = new Random();
@@ -49,19 +53,35 @@ public class Block implements Serializable {
             patternBuilder.append('0');
         }
         while (!hash.startsWith(patternBuilder.toString())) {
+            if (Thread.currentThread().isInterrupted()) {
+                throw new InterruptedException(Thread.currentThread().getName());
+            }
             magicNumber = random.nextInt(upperBound - lowerBound) + lowerBound;
             hash = StringUtil.applySha256(magicNumber + hashString);
         }
 
         generationTime = LocalTime.now().toSecondOfDay() - startTime.toSecondOfDay();
         if (generationTime < 15) {
-            zeroString = "\nN was increased to " + (zeroPrefix + 1);
+            nAdjustmentString = "\nN was increased to " + (zeroPrefix + 1);
         } else if (generationTime > 60) {
-            zeroString = "\nN was decreased to " + (zeroPrefix - 1);
+            nAdjustmentString = "\nN was decreased to " + (zeroPrefix - 1);
         } else {
-            zeroString = "\nN stays the same";
+            nAdjustmentString = "\nN stays the same";
         }
         return hash;
+    }
+
+    private String formatMessages() {
+        if (Blockchain.getMessageQueue().isEmpty()) {
+            return "no messages";
+        }
+        StringBuilder sb = new StringBuilder();
+        for (int i = Blockchain.getMessageQueue().size(); i > 0; i--) {
+            sb.append(String.format("\n%s", Blockchain.getMessageQueue().poll()));
+//            Blockchain.getMessageQueue().forEach(e -> sb.append(String.format("\n%s", e)));
+        }
+
+        return sb.toString();
     }
 
     public int getId() {
@@ -88,8 +108,9 @@ public class Block implements Serializable {
                 + "\nTimestamp: " + timestamp
                 + "\nMagic number: " + magicNumber
                 + "\nHash of the previous block:\n" + prevBlockHash
+                + "\nBlock data: " + messages
                 + "\nHash of the block:\n" + hash
                 + "\nBlock was generating for " + generationTime + " seconds"
-                + zeroString;
+                + nAdjustmentString;
     }
 }

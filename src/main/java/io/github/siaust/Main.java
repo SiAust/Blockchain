@@ -15,7 +15,10 @@ public class Main {
         controller.initialiseBlockchain();
         controller.mineBlockchain();
         controller.updateView();
+
+        // Debug
 //        controller.printBlockchainValidation();
+        controller.printBlockchainMessages();
 
     }
 }
