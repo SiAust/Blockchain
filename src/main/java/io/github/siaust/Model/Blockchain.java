@@ -101,11 +101,7 @@ public class Blockchain implements Serializable {
         }
         if (generationTime > 60) {
             zeroPrefix--;
-            return;
         }
-
-
-
     }
 
     /**

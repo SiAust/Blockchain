@@ -3,6 +3,9 @@ package io.github.siaust.Utils;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.util.Queue;
 
 public class BlockMessenger extends Thread {
@@ -17,23 +20,31 @@ public class BlockMessenger extends Thread {
 
     @Override
     public void run() {
-        try {
-            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(System.in));
-            System.out.println("Enter message: ");
+
+        int portNumber = 8080;
+
+        try (
+                ServerSocket serverSocket = new ServerSocket(portNumber);
+                Socket clientSocket = serverSocket.accept();
+                PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
+                BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+        ) {
+            String inputLine;
             while (running) {
                 if (Thread.currentThread().isInterrupted()) {
                     running = false;
-                    throw new InterruptedException();
+                    out.println(-1);
+                    throw new InterruptedException(Thread.currentThread().getName() + ": Server thread terminated");
                 }
-                if (bufferedReader.ready()) {
-                    String message = bufferedReader.readLine();
-                    messagesList.add(message);
-                    System.out.printf("Your message \"%s\" has been added to the queue.\n", message);
-                    System.out.println("Enter message: ");
+                if (in.ready()) {
+                    if ((inputLine = in.readLine()) != null) {
+                        out.println(inputLine);
+                        messagesList.add(inputLine);
+                    }
                 }
             }
-        } catch (InterruptedException | IOException e) {
-            System.out.println(Thread.currentThread().getName() + " interrupted");
+        } catch (IOException | InterruptedException e) {
+//            System.out.println(e.getMessage());
         }
     }
 }

@@ -108,8 +108,8 @@ public class Block implements Serializable {
                 + "\nTimestamp: " + timestamp
                 + "\nMagic number: " + magicNumber
                 + "\nHash of the previous block:\n" + prevBlockHash
-                + "\nBlock data: " + messages
                 + "\nHash of the block:\n" + hash
+                + "\nBlock data: " + messages
                 + "\nBlock was generating for " + generationTime + " seconds"
                 + nAdjustmentString;
     }
