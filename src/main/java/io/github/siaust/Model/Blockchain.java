@@ -1,11 +1,14 @@
 package io.github.siaust.Model;
 
 import io.github.siaust.Exception.InvalidBlockchain;
+import io.github.siaust.Utils.BlockMessenger;
 import io.github.siaust.Utils.MinerExecutor;
 import io.github.siaust.Utils.SerializationUtils;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.ArrayDeque;
+import java.util.Queue;
 
 public class Blockchain implements Serializable {
 
@@ -13,6 +16,8 @@ public class Blockchain implements Serializable {
     private Block[] blockchain;
     private int zeroPrefix = 0;
     private final String FILEPATH = ".\\blockchain.data";
+
+    public static volatile Queue<String> messagesList = new ArrayDeque<>();
 
     public Blockchain() {
     }
@@ -53,6 +58,9 @@ public class Blockchain implements Serializable {
     }
 
     public void addBlock(int repetitions) {
+        Thread messenger = new BlockMessenger(messagesList);
+        messenger.start();
+
         for (int i = 0; i < repetitions; i++) {
             if (findLastBlock() == null) { // no blocks exist, serialization hasn't happened yet
                 blockchain[0] = MinerExecutor.mineBlocks(zeroPrefix, null);
@@ -73,6 +81,11 @@ public class Blockchain implements Serializable {
                 }
             }
         }
+        messenger.interrupt();
+    }
+
+    public static Queue<String> getMessageQueue() {
+        return messagesList;
     }
 
     /** Sets the zeroPrefix field according to the length of time a Block is generating.
@@ -81,15 +94,18 @@ public class Blockchain implements Serializable {
     private void setZeroPrefix(int generationTime) {
         if (generationTime < 15) {
             zeroPrefix++;
+            if (zeroPrefix == 7) { // fixme: temp to stop very long generation time
+                zeroPrefix = 6;
+            }
+            return;
         }
         if (generationTime > 60) {
             zeroPrefix--;
         }
-
     }
 
     /**
-     * Validate each block by comparing this Block's previousHash field to the preceeding Block's
+     * Validate each block by comparing this Block's previousHash field to the preceding Block's
      * hash field in the Blockchain array
      * @param block the generated Block must be valid before being placed in the Blockchain
      * @exception  InvalidBlockchain exception */

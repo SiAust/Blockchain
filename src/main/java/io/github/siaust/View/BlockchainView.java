@@ -18,4 +18,8 @@ public class BlockchainView {
                     i, blockchain[i] == null ? "null" : blockchain[i - 1].getHash());
         }
     }
+
+    public void printMessages() {
+        Blockchain.getMessageQueue().forEach(System.out::println);
+    }
 }

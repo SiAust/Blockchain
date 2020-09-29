@@ -26,7 +26,9 @@ public class MinerExecutor {
                 e.printStackTrace();
             }
         }
-        executor.shutdown();
+        executor.shutdownNow();
+//        System.out.println("is terminated: " + executor.isTerminated()); // fixme debug
+
         return block;
     }
 }
