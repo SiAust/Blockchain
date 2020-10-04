@@ -36,7 +36,7 @@ public class BlockMessenger extends Thread {
                     out.println(-1);
                     throw new InterruptedException(Thread.currentThread().getName() + ": Server thread terminated");
                 }
-                if (in.ready()) {
+                while (in.ready()) {
                     if ((inputLine = in.readLine()) != null) {
                         out.println(inputLine);
                         messagesList.add(inputLine);
