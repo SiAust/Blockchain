@@ -15,6 +15,7 @@ public class ClientView extends JFrame {
     private JTextArea msgTextArea;
     private JTextArea serverReply;
     private JLabel serverState;
+    private JButton publicKeyButton;
 
     public void displayFrame() {
 
@@ -52,20 +53,32 @@ public class ClientView extends JFrame {
         nameSettingPanel.add(nameButton);
 
         /* server status panel */
-        JPanel serverStatus = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        JPanel serverStatusPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
 //        serverStatus.setBackground(new Color(210, 19, 19));
-        serverStatus.setSize(new Dimension(100, 60));
+        serverStatusPanel.setSize(new Dimension(100, 60));
 
         JLabel serverLabel = new JLabel("Connection status:");
         serverState = new JLabel();
         setConnectionStatus(false);
 
-        serverStatus.add(serverLabel);
-        serverStatus.add(serverState);
+        serverStatusPanel.add(serverLabel);
+        serverStatusPanel.add(serverState);
 
-        JPanel westGridPanel = new JPanel(new GridLayout(10,1));
+        /* Public key panel */
+        JPanel publicKeyPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+
+        JLabel publicKeyLabel = new JLabel("Public Key:");
+
+        publicKeyButton = new JButton("...");
+
+        publicKeyPanel.add(publicKeyLabel);
+        publicKeyPanel.add(publicKeyButton);
+
+        JPanel westGridPanel = new JPanel(new GridLayout(5,1));
         westGridPanel.add(nameSettingPanel);
-        westGridPanel.add(serverStatus);
+        westGridPanel.add(publicKeyPanel);
+        westGridPanel.add(serverStatusPanel);
+
 
         /* eastContainer components */
         JLabel instructions = new JLabel("Input text message below:");
@@ -142,6 +155,8 @@ public class ClientView extends JFrame {
         return send;
     }
 
+    public JButton getPublicKeyButton() { return publicKeyButton; }
+
     public JTextArea getMsgTextArea() {
         return msgTextArea;
     }
@@ -152,7 +167,9 @@ public class ClientView extends JFrame {
                 serverReply.getText() + "\n" + response : response); /* ternary prevents line break on 1st msg */
     }
 
-    public void setNameButton(String name) {
+    public String getNameButtonText() { return this.nameButton.getText();}
+
+    public void setNameButtonText(String name) {
         this.nameButton.setText(name);
     }
 

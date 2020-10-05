@@ -20,7 +20,6 @@ public class Controller implements Observer {
         startConnection();
     }
 
-
     public void init() {
         view.getConnect().addActionListener(e -> {
             System.out.println("View Connect button pressed");
@@ -28,18 +27,27 @@ public class Controller implements Observer {
         view.getNameButton().addActionListener(e -> {
             System.out.println("View Name button pressed");
             String name = JOptionPane.showInputDialog("Input your name");
-            view.setNameButton(name);
+            view.setNameButtonText(name);
         });
         view.getSend().addActionListener(e -> {
-            System.out.println("ActionEvent= " + e.getActionCommand());
+            System.out.println("View Send button pressed");
+            sendMessage();
         });
         view.getConnect().addActionListener(e -> {
             startConnection();
         });
+        view.getPublicKeyButton().addActionListener(e -> {
+            int option = JOptionPane.showConfirmDialog(view,
+                    "Load public key from server or file?",
+                    "Public Key",
+                    JOptionPane.YES_NO_CANCEL_OPTION, // fixme change dialog options?
+                    JOptionPane.INFORMATION_MESSAGE);
+            System.out.println("OPTION: " + option);
+        });
     }
 
     private void sendMessage() {
-        model.setName(view.getName());
+        model.setName(view.getNameButtonText());
         model.setPublicKey("example key"); // fixme store a public key somewhere?
         model.setMsgContent(view.getMsgTextArea().getText().trim());
         view.getMsgTextArea().setText(""); // clear the text after sending

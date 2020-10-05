@@ -58,6 +58,7 @@ public class ClientServer extends Thread implements Observable {
                 if (!messages.isEmpty()) {
                     Message message = messages.pop();
                     out.println(message);
+//                    out.write(String.valueOf(message));
 
                     outStd.println(message);
                     System.out.println("PrinterWriter message: " + message);// so I can see what PrintWriter is doing?
