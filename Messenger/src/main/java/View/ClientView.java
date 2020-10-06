@@ -3,7 +3,6 @@ package View;
 import javax.swing.*;
 import java.awt.*;
 import java.time.LocalTime;
-import java.util.Optional;
 
 public class ClientView extends JFrame {
 
@@ -27,11 +26,14 @@ public class ClientView extends JFrame {
         setPreferredSize(new Dimension(800, 400));
         setResizable(false);
         setLocationRelativeTo(null);
-        setLayout(new GridLayout());
+        /* Top level container so we can have some padding between the JFrame */
+        JPanel container = new JPanel(new GridLayout());
+        container.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
         /* Containers */
         JPanel westContainer = new JPanel(new BorderLayout());
         JPanel eastContainer = new JPanel(new BorderLayout());
+        eastContainer.setBorder(BorderFactory.createEmptyBorder(0,10,0,0));
 
         /* Components */
 
@@ -75,6 +77,7 @@ public class ClientView extends JFrame {
         publicKeyPanel.add(publicKeyButton);
 
         JPanel westGridPanel = new JPanel(new GridLayout(5,1));
+        westGridPanel.setBorder(BorderFactory.createLineBorder(Color.GRAY));
         westGridPanel.add(nameSettingPanel);
         westGridPanel.add(publicKeyPanel);
         westGridPanel.add(serverStatusPanel);
@@ -135,9 +138,10 @@ public class ClientView extends JFrame {
         eastContainer.add(eastBtnPanel, BorderLayout.SOUTH);
 
         /* frame */
-        add(westContainer);
-        add(eastContainer);
+        container.add(westContainer);
+        container.add(eastContainer);
 
+        add(container);
         setVisible(true);
         pack();
     }

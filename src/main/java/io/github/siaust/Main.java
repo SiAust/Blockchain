@@ -11,14 +11,6 @@ public class Main {
         BlockchainView view = new BlockchainView();
 
         BlockchainController controller = new BlockchainController(model, view);
-
-        controller.initialiseBlockchain();
-        controller.mineBlockchain();
-        controller.updateView();
-
-        // Debug
-//        controller.printBlockchainValidation();
-        controller.printBlockchainMessages();
-
+        controller.init();
     }
 }

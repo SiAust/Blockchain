@@ -2,7 +2,7 @@ package Controller;
 
 import Utils.Observer;
 import View.ClientView;
-import Utils.ClientServer;
+import Utils.Client;
 import model.Message;
 
 import javax.swing.*;
@@ -11,7 +11,8 @@ public class Controller implements Observer {
 
     private final ClientView view;
     private final Message model;
-    private ClientServer clientServer;
+    private Client serverMessenger;
+    private Client serverKeyRequest;
 
     public Controller(Message model, ClientView view) {
         this.model = model;
@@ -37,13 +38,30 @@ public class Controller implements Observer {
             startConnection();
         });
         view.getPublicKeyButton().addActionListener(e -> {
-            int option = JOptionPane.showConfirmDialog(view,
+            int option = JOptionPane.showOptionDialog(view,
                     "Load public key from server or file?",
-                    "Public Key",
-                    JOptionPane.YES_NO_CANCEL_OPTION, // fixme change dialog options?
-                    JOptionPane.INFORMATION_MESSAGE);
+                    "Get Public Key",
+                    0,
+                    JOptionPane.INFORMATION_MESSAGE,
+                    null,
+                    new String[]{"File", "Server", "Cancel"},
+                    null);
+            if (option == 0) {
+                System.out.println("Opening file dialog");
+                int fileOption = new JFileChooser().showDialog(view, "Select"); // todo: select file
+            }
+            if (option == 1) {
+                System.out.println("Getting key from server");
+                requestPublicKey();
+            }
             System.out.println("OPTION: " + option);
         });
+    }
+
+    private void startConnection() {
+        serverMessenger = new Client(8080);
+        serverMessenger.start();
+        serverMessenger.addObserver(this);
     }
 
     private void sendMessage() {
@@ -51,14 +69,15 @@ public class Controller implements Observer {
         model.setPublicKey("example key"); // fixme store a public key somewhere?
         model.setMsgContent(view.getMsgTextArea().getText().trim());
         view.getMsgTextArea().setText(""); // clear the text after sending
-        clientServer.addMessage(model);
+        serverMessenger.addMessage(model);
 
     }
 
-    private void startConnection() {
-        clientServer = new ClientServer();
-        clientServer.start();
-        clientServer.addObserver(this);
+    private void requestPublicKey() {
+        serverKeyRequest = new Client(6666);
+        serverKeyRequest.start();
+        serverKeyRequest.addObserver(this);
+
     }
 
     private void setServerResponse(String response) {
@@ -73,5 +92,10 @@ public class Controller implements Observer {
     @Override
     public void connectionNotification(boolean isConnected) {
         view.setConnectionStatus(isConnected);
+    }
+
+    @Override
+    public void keyNotification(String key) {
+        System.out.println("Key received in controller: " + key);
     }
 }

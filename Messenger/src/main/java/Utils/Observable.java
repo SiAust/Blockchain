@@ -5,4 +5,5 @@ public interface Observable {
     void removeObserver(Observer observer);
     void notifyServerResponse(String serverMessage);
     void notifyConnectionStatus(boolean bool);
+    void notifyKeyResponse(String key);
 }
