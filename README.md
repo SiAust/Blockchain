@@ -10,3 +10,13 @@ To create a proof of work concept, a magic number is generated before the Block 
 condition of *n* zeroes prefixed to the hash must be met before the hash is accepted. This in effect means it is 
 impossible to alter a block in the Blockchain as new blocks are added faster than it would be possible to alter the 
 entire blockchain if tampering with a individual block.
+
+### Blockchain Messenger
+A Java Swing GUI client that sends messages to 
+a server, using a Socket endpoint, which is generating 
+blocks for the blockchain. This messenger uses digital 
+signatures to authenticate communication. Public and private
+keys are generated using RSA cryptosystem. The public key is
+sent to the server, which is uses to decrypt the private key 
+encrypted message before adding the message to the block being
+generated.

@@ -1,11 +1,9 @@
 package io.github.siaust.Utils;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.List;
 import java.util.Queue;
 
 public class Server extends Thread {
@@ -14,18 +12,18 @@ public class Server extends Thread {
     boolean running = true;
     private final int port;
 
+    private List<byte[]> list;
+    private byte[] publicKey;
+
+    /** This constructor is for creating a runnable instance ServerSocket which listens for
+     * messages from the client. It verifies the messages using the public key received from the client.
+     * @param messagesList a reference to the messagesList object in the Controller class. We add messages
+     * here and the controller will pass to Block when called */
     public Server(Queue<String> messagesList) {
         super("Block-Messenger");
         this.messagesList = messagesList;
         this.port = 8080;
     }
-
-    public Server(int port) {
-        super("Key-Listener");
-        this.port = port;
-        this.messagesList = null;
-    }
-
 
     @Override
     public void run() {
@@ -33,48 +31,45 @@ public class Server extends Thread {
                 ServerSocket serverSocket = new ServerSocket(port);
                 Socket clientSocket = serverSocket.accept();
                 PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
-                BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+                ObjectInputStream objectIn = new ObjectInputStream(clientSocket.getInputStream());
         ) {
             // fixme: the below code isn't called until a connection is made, hence
             // fixme: interrupt() will not be checked and the thread will not be terminated.
             String inputLine;
-            if (port == 8080) {
-                while (running) {
-                    if (Thread.currentThread().isInterrupted()) {
-                        running = false;
-                        out.println(-1);
-                        throw new InterruptedException(Thread.currentThread().getName() + ": Server thread terminated");
+            while (running) {
+                if (Thread.currentThread().isInterrupted()) {
+                    running = false;
+                    out.println("-1"); // todo: check
+                    throw new InterruptedException(Thread.currentThread().getName() + ": Server thread terminated");
+                }
+                int readInt = objectIn.readInt();
+                /* The client sends a int to identify the forthcoming object to be received. If
+                 * the int has value of zero, we will next receive the public key object */
+                if (readInt == 0) {
+                    if ((publicKey = (byte[]) objectIn.readObject()) != null) {
+                        out.println("1");
+                        KeyUtils.writeToFile(publicKey);
                     }
-                    while (in.ready()) {
-                        if ((inputLine = in.readLine()) != null) {
-                            out.println(inputLine);
-                            // if inputLine == "give me public key" / out.println(publicKey.txt) ?
+                }
+                /* If the value of readInt is one then we are receiving a list object next */
+                if (readInt == 1) {
+                    if ((list = (List<byte[]>) objectIn.readObject()) != null) {
+                        if (KeyUtils.verifySignature(list)) {
+                            inputLine = new String(list.get(0));
                             messagesList.add(inputLine);
+                            out.println("Message received: " + inputLine);
                         }
                     }
                 }
             }
-            /* We handle listening for a client request for the public key */
-            if (port == 6666) {
-                while (running) {
-                    if (Thread.currentThread().isInterrupted()) {
-                        running = false;
-                        out.println(-1);
-                        throw new InterruptedException(Thread.currentThread().getName() + ": Server thread terminated");
-                    }
-                    while (in.ready()) {
-                        if ((inputLine = in.readLine()) != null) {
-                            // if inputLine == "give me public key" / out.println(publicKey.txt) ?
-                            if (inputLine.equals("publicKey")) {
-                                out.println("here is your public key! =KEYKEYKEY= ");
-                            }
-                            out.println(inputLine);
-                        }
-                    }
-                }
-            }
-        } catch (IOException | InterruptedException e) {
-            System.err.println(e.getMessage());
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+//            e.printStackTrace();
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 }

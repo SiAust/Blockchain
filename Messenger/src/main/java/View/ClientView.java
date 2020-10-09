@@ -2,19 +2,21 @@ package View;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.time.LocalTime;
 
 public class ClientView extends JFrame {
 
-    private String name = "anon";
-
     private JButton nameButton;
     private JButton connect;
     private JButton send;
+
     private JTextArea msgTextArea;
     private JTextArea serverReply;
+
     private JLabel serverState;
-    private JButton publicKeyButton;
+    private JLabel publicKeyStatus;
 
     public void displayFrame() {
 
@@ -30,10 +32,16 @@ public class ClientView extends JFrame {
         JPanel container = new JPanel(new GridLayout());
         container.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
+        connect = new JButton("Connect");
+        connect.setPreferredSize(buttonSize);
+
+        send = new JButton("Send");
+        send.setPreferredSize(buttonSize);
+
         /* Containers */
         JPanel westContainer = new JPanel(new BorderLayout());
         JPanel eastContainer = new JPanel(new BorderLayout());
-        eastContainer.setBorder(BorderFactory.createEmptyBorder(0,10,0,0));
+        eastContainer.setBorder(BorderFactory.createEmptyBorder(0, 10, 0, 0));
 
         /* Components */
 
@@ -47,8 +55,7 @@ public class ClientView extends JFrame {
 
         JLabel nameLabel = new JLabel("Name:");
 //        nameLabel.setPreferredSize(buttonSize);
-
-        nameButton = new JButton(name);
+        nameButton = new JButton("anon");
 //        nameButton.setBackground(blue);
 
         nameSettingPanel.add(nameLabel);
@@ -71,12 +78,13 @@ public class ClientView extends JFrame {
 
         JLabel publicKeyLabel = new JLabel("Public Key:");
 
-        publicKeyButton = new JButton("...");
+        publicKeyStatus = new JLabel();
+        setPublicKeyStatus(false);
 
         publicKeyPanel.add(publicKeyLabel);
-        publicKeyPanel.add(publicKeyButton);
+        publicKeyPanel.add(this.publicKeyStatus);
 
-        JPanel westGridPanel = new JPanel(new GridLayout(5,1));
+        JPanel westGridPanel = new JPanel(new GridLayout(5, 1));
         westGridPanel.setBorder(BorderFactory.createLineBorder(Color.GRAY));
         westGridPanel.add(nameSettingPanel);
         westGridPanel.add(publicKeyPanel);
@@ -110,17 +118,11 @@ public class ClientView extends JFrame {
         serverReplyScrollPane.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         JPanel centerContainer = new JPanel();
-        centerContainer.setLayout(new BoxLayout(centerContainer ,BoxLayout.Y_AXIS));
+        centerContainer.setLayout(new BoxLayout(centerContainer, BoxLayout.Y_AXIS));
 
         centerContainer.add(msgScrollPane);
         centerContainer.add(serverMsg);
         centerContainer.add(serverReplyScrollPane);
-
-        connect = new JButton("Connect");
-        connect.setPreferredSize(buttonSize);
-
-        send = new JButton("Send");
-        send.setPreferredSize(buttonSize);
 
         JPanel eastBtnPanel = new JPanel(new FlowLayout());
         eastBtnPanel.add(connect);
@@ -159,7 +161,9 @@ public class ClientView extends JFrame {
         return send;
     }
 
-    public JButton getPublicKeyButton() { return publicKeyButton; }
+    public JLabel getPublicKeyStatus() {
+        return publicKeyStatus;
+    }
 
     public JTextArea getMsgTextArea() {
         return msgTextArea;
@@ -171,7 +175,9 @@ public class ClientView extends JFrame {
                 serverReply.getText() + "\n" + response : response); /* ternary prevents line break on 1st msg */
     }
 
-    public String getNameButtonText() { return this.nameButton.getText();}
+    public String getNameButtonText() {
+        return this.nameButton.getText();
+    }
 
     public void setNameButtonText(String name) {
         this.nameButton.setText(name);
@@ -181,9 +187,23 @@ public class ClientView extends JFrame {
         if (isConnected) {
             serverState.setForeground(Color.GREEN);
             serverState.setText("Open");
+            connect.setEnabled(false);
+            send.setEnabled(true);
             return;
         }
         serverState.setForeground(Color.red);
         serverState.setText("Closed");
+        connect.setEnabled(true);
+        send.setEnabled(false);
+    }
+
+    public void setPublicKeyStatus(boolean isShared) {
+        if (isShared) {
+            publicKeyStatus.setText("Sent, received");
+            publicKeyStatus.setForeground(Color.GREEN);
+            return;
+        }
+        publicKeyStatus.setText("Not shared");
+        publicKeyStatus.setForeground(Color.RED);
     }
 }
