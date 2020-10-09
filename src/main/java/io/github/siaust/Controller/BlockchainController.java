@@ -13,6 +13,14 @@ public class BlockchainController {
         this.view = view;
     }
 
+    public void init() {
+        initialiseBlockchain();
+        mineBlockchain();
+        updateView();
+//        printBlockchainValidation();
+        printBlockchainMessages();
+    }
+
     public void initialiseBlockchain() {
         model.initialise();
     }

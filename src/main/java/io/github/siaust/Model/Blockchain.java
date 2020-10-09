@@ -1,7 +1,7 @@
 package io.github.siaust.Model;
 
 import io.github.siaust.Exception.InvalidBlockchain;
-import io.github.siaust.Utils.BlockMessenger;
+import io.github.siaust.Utils.Server;
 import io.github.siaust.Utils.MinerExecutor;
 import io.github.siaust.Utils.SerializationUtils;
 
@@ -58,8 +58,8 @@ public class Blockchain implements Serializable {
     }
 
     public void addBlock(int repetitions) {
-        Thread messenger = new BlockMessenger(messagesList);
-        messenger.start();
+        Thread server = new Server(messagesList);
+        server.start();
 
         for (int i = 0; i < repetitions; i++) {
             if (findLastBlock() == null) { // no blocks exist, serialization hasn't happened yet
@@ -81,7 +81,7 @@ public class Blockchain implements Serializable {
                 }
             }
         }
-        messenger.interrupt();
+        server.interrupt();
     }
 
     public static Queue<String> getMessageQueue() {
