@@ -46,13 +46,10 @@ public class Controller implements Observer {
         });
         view.getMsgTextArea().addKeyListener(new KeyListener() {
             @Override
-            public void keyTyped(KeyEvent e) {
-
-            }
+            public void keyTyped(KeyEvent e) {}
 
             @Override
             public void keyPressed(KeyEvent e) {
-                System.out.println("KeyTyped: " + e.getKeyCode());
                 if (e.getKeyCode() == KeyEvent.VK_ENTER && e.isControlDown()) {
                     if (view.getSend().isEnabled()) {
                         sendMessage();
@@ -62,9 +59,7 @@ public class Controller implements Observer {
             }
 
             @Override
-            public void keyReleased(KeyEvent e) {
-
-            }
+            public void keyReleased(KeyEvent e) {}
         });
 
         generateKeys();

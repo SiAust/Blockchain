@@ -9,15 +9,20 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayDeque;
 import java.util.Queue;
+import java.util.Random;
+import java.util.function.Supplier;
 
 public class Blockchain implements Serializable {
 
     private static final long serialVersionUID = -6810975215568720649L;
+
     private Block[] blockchain;
     private int zeroPrefix = 0;
     private final String FILEPATH = ".\\blockchain.data";
 
     public static volatile Queue<String> messagesList = new ArrayDeque<>();
+    private Random random = new Random();
+    private volatile int messageID = 1;
 
     public Blockchain() {
     }
@@ -46,6 +51,9 @@ public class Blockchain implements Serializable {
             Blockchain deserialized = (Blockchain) SerializationUtils.deserialize(FILEPATH);
             blockchain = deserialized.getBlockchain().clone();
             zeroPrefix = deserialized.zeroPrefix;
+            System.out.println("zeroPrefix has been deserialized: " + zeroPrefix);
+            messageID = deserialized.messageID;
+            System.out.println("messageID has been deserialized: " + messageID);
             return true;
         } catch (IOException | ClassNotFoundException e) {
             System.out.println("No blockchain found on device.");
@@ -58,11 +66,11 @@ public class Blockchain implements Serializable {
     }
 
     public void addBlock(int repetitions) {
-        Thread server = new Server(messagesList);
+        Server server = new Server(messagesList, messageIDIncrementer());
         server.start();
 
         for (int i = 0; i < repetitions; i++) {
-            if (findLastBlock() == null) { // no blocks exist, serialization hasn't happened yet
+            if (findLastBlock() == null) {  /* no blocks exist, serialization hasn't happened yet */
                 blockchain[0] = MinerExecutor.mineBlocks(zeroPrefix, null);
                 setZeroPrefix(blockchain[0].getGenerationTime());
             } else {
@@ -81,7 +89,17 @@ public class Blockchain implements Serializable {
                 }
             }
         }
-        server.interrupt();
+        server.interrupt(); /* try's to interrupt the thread, we check for condition in while loop */
+        server.closeServer(); /* Closes the server if now connections have been made, as the code will be
+                                blocked on serverSocket.accept() */
+    }
+
+    public synchronized Supplier<Integer> messageIDIncrementer() {
+        return () -> {
+            int number = random.nextInt(10) + 1 + messageID; // +1 as nextInt() could return 0
+            messageID = number;
+            return number;
+        };
     }
 
     public static Queue<String> getMessageQueue() {
@@ -108,7 +126,7 @@ public class Blockchain implements Serializable {
      * Validate each block by comparing this Block's previousHash field to the preceding Block's
      * hash field in the Blockchain array
      * @param block the generated Block must be valid before being placed in the Blockchain
-     * @exception  InvalidBlockchain exception */
+     * @exception InvalidBlockchain exception */
     private boolean isValid(Block block) throws InvalidBlockchain {
         if (block.getPrevBlockHash().equals(blockchain[block.getId() - 2].getHash())) {
             return true;

@@ -34,31 +34,33 @@ public class Client extends Thread implements Observable {
                 ObjectOutputStream objectOut = new ObjectOutputStream(echoSocket.getOutputStream());
                 BufferedReader in = new BufferedReader(new InputStreamReader(echoSocket.getInputStream()))
         ) {
-            if (port == 8080) {
-                notifyConnectionStatus(true);
-                objectOut.writeInt(0); // so ObjectInputStream knows we're sending the publicKey object
-                objectOut.writeObject(Keys.getPublic().getEncoded());
-                String serverResponse;
-                while (true) {
-                    if (in.ready()) {
+            notifyConnectionStatus(true);
+            objectOut.writeInt(1); // so Server ObjectInputStream knows we're sending the publicKey object
+            objectOut.writeObject(Keys.getPublic().getEncoded());
+            String serverResponse;
+            while (true) {
+                if (in.ready()) {
+                    serverResponse = in.readLine();
+                    if (serverResponse.equals("-1")) {
+                        notifyConnectionStatus(false);
+                        notifyKeyResponse(false);
+                        notifyServerResponse("Server connection closed");
+                        break;
+                    } else if (serverResponse.equals("1")) {
+                        notifyKeyResponse(true);
                         serverResponse = in.readLine();
-                        if (serverResponse.equals("-1")) {
-                            notifyConnectionStatus(false);
-                            notifyKeyResponse(false);
-                            notifyServerResponse("Server connection closed");
-                            break;
-                        }else if (serverResponse.equals("1")) {
-                            notifyKeyResponse(true);
-                        } else {
-                            notifyServerResponse(serverResponse);
-                            System.out.println("Server received message: " + serverResponse);
-                        }
+                        System.err.println("This is the first messageID: " + serverResponse); // todo: we receive msgID for first time
+                    } else {
+                        notifyServerResponse(serverResponse);
+                        System.out.println("Server received message: " + serverResponse);
                     }
-                    if (!messages.isEmpty()) {
-                        Message message = messages.pop();
-                        objectOut.writeInt(1); // so ObjectInputStream knows we're sending the list object
-                        objectOut.writeObject(message.getList());
-                    }
+                }
+                if (!messages.isEmpty()) {
+                    objectOut.writeInt(2); // so ObjectInputStream knows we're sending the list object
+                    Message message = messages.pop();
+                    objectOut.writeObject(message.getList());
+                    serverResponse = in.readLine(); // todo: each time we send a msg we receive a new msgID
+                    System.err.println("This is the next messageID: " + serverResponse);
                 }
             }
         } catch (UnknownHostException e) {
