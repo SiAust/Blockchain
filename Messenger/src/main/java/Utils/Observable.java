@@ -6,4 +6,5 @@ public interface Observable {
     void notifyServerResponse(String serverMessage);
     void notifyConnectionStatus(boolean bool);
     void notifyKeyResponse(boolean hasKey);
+    void notifyMsgID(int id);
 }

@@ -4,7 +4,9 @@ import io.github.siaust.Utils.StringUtil;
 
 import java.io.Serializable;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Random;
 
 public class Block implements Serializable {
@@ -22,7 +24,8 @@ public class Block implements Serializable {
     private final int zeroPrefix;
     private int magicNumber;
 
-    private String messages;
+    private final List<Message> messageList = new ArrayList<>(); // Holds all our messages from client inc. msgID
+    private final String messages;
 
     public Block(int id, String prevBlockHash, int zeroPrefix, String minerID) throws InterruptedException {
         this.zeroPrefix = zeroPrefix;
@@ -31,7 +34,7 @@ public class Block implements Serializable {
         this.prevBlockHash = prevBlockHash;
         hash = generateHash();
         this.minerID = minerID;
-        messages = formatMessages();
+        messages = getMessages();
     }
 
     private String generateHash() throws InterruptedException {
@@ -71,16 +74,20 @@ public class Block implements Serializable {
         return hash;
     }
 
-    private String formatMessages() {
+    private String getMessages() {
         if (Blockchain.getMessageQueue().isEmpty()) {
             return "no messages";
         }
         StringBuilder sb = new StringBuilder();
         for (int i = Blockchain.getMessageQueue().size(); i > 0; i--) {
-            sb.append(String.format("\n%s", Blockchain.getMessageQueue().poll()));
-//            Blockchain.getMessageQueue().forEach(e -> sb.append(String.format("\n%s", e)));
-        }
+            Message message = Blockchain.getMessageQueue().poll();
+            messageList.add(message);
 
+            String formatted = String.format("%s: %s",
+                        message.getName(),
+                        message.getMsgContent());
+            sb.append(String.format("\n%s", formatted));
+        }
         return sb.toString();
     }
 
@@ -99,6 +106,8 @@ public class Block implements Serializable {
     public int getGenerationTime() {
         return generationTime;
     }
+
+    public List<Message> getMessageList() { return messageList; }
 
     @Override
     public String toString() {
