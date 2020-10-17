@@ -2,7 +2,7 @@ package io.github.siaust.Exception;
 
 public class InvalidBlockchain extends Exception {
 
-    public InvalidBlockchain() {
-        super("This blockchain is invalid.");
+    public InvalidBlockchain(String message) {
+        super(message);
     } // todo: Include details
 }

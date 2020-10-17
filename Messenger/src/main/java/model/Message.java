@@ -1,71 +1,47 @@
 package model;
 
-import java.io.*;
-import java.nio.file.Files;
-import java.security.InvalidKeyException;
-import java.security.KeyFactory;
-import java.security.PrivateKey;
-import java.security.Signature;
-import java.security.spec.PKCS8EncodedKeySpec;
+import Utils.KeyUtils;
+
 import java.util.ArrayList;
 import java.util.List;
 
 public class Message {
 
-    List<byte[]> list;
+    List<byte[]> list; // todo should this be here?
 
     private String name;
     private String msgContent;
+    private int messageID;
 
     public Message() {}
 
-    public Message(String name, String msgContent, String keyFile) {
+    public Message(String name, String msgContent, String keyFile, int messageID) {
         this.list = new ArrayList<>();
 
         this.name = name;
         this.msgContent = msgContent;
+        this.messageID = messageID;
 
         this.list.add(this.toString().getBytes()); // our message as a byte[]
         try {
-            this.list.add(sign(this.toString(), keyFile));
+            this.list.add(KeyUtils.sign(this.toString(), keyFile)); // our signature
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    //The method that signs the data using the private key that is stored in keyFile path
-    public byte[] sign(String data, String keyFile) throws InvalidKeyException, Exception{
-        Signature rsa = Signature.getInstance("SHA1withRSA");
-        rsa.initSign(getPrivate(keyFile));
-        rsa.update(data.getBytes());
-        return rsa.sign();
-    }
-
-    //Method to retrieve the Private Key from a file
-    public PrivateKey getPrivate(String filename) throws Exception {
-        byte[] keyBytes = Files.readAllBytes(new File(filename).toPath());
-        PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(keyBytes);
-        KeyFactory kf = KeyFactory.getInstance("RSA");
-        return kf.generatePrivate(spec);
-    }
-
-    //Method to write the List of byte[] to a file
-    public void writeToFile(String filename) throws FileNotFoundException, IOException {
-        File f = new File(filename);
-        f.getParentFile().mkdirs();
-        ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(filename));
-        out.writeObject(list);
-        out.close();
-        System.out.println("Your file is ready.");
-    }
-
+    /** @return The list which contains our JSON message string in bytes in index 0,
+     * and the signature of the message in index 1 */
     public List<byte[]> getList() {
         return list;
     }
 
+    /** @return A String formatted in JSON syntax. This allows easy extraction of parts of data from the
+     * string */
     @Override
     public String toString() {
-        return name + ": " + msgContent;
-
+        return String.format("{\"name\":\"%s\"," +
+                "\"msgContent\":\"%s\"," +
+                "\"messageID\":%d}", name, msgContent, messageID);
     }
 }

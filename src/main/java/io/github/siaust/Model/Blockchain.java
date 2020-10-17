@@ -1,13 +1,14 @@
 package io.github.siaust.Model;
 
 import io.github.siaust.Exception.InvalidBlockchain;
-import io.github.siaust.Utils.Server;
 import io.github.siaust.Utils.MinerExecutor;
 import io.github.siaust.Utils.SerializationUtils;
+import io.github.siaust.Utils.Server;
 
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayDeque;
+import java.util.List;
 import java.util.Queue;
 import java.util.Random;
 import java.util.function.Supplier;
@@ -20,8 +21,8 @@ public class Blockchain implements Serializable {
     private int zeroPrefix = 0;
     private final String FILEPATH = ".\\blockchain.data";
 
-    public static volatile Queue<String> messagesList = new ArrayDeque<>();
-    private Random random = new Random();
+    public static volatile Queue<Message> messagesList = new ArrayDeque<>();
+    private final Random random = new Random();
     private volatile int messageID = 1;
 
     public Blockchain() {
@@ -51,9 +52,8 @@ public class Blockchain implements Serializable {
             Blockchain deserialized = (Blockchain) SerializationUtils.deserialize(FILEPATH);
             blockchain = deserialized.getBlockchain().clone();
             zeroPrefix = deserialized.zeroPrefix;
-            System.out.println("zeroPrefix has been deserialized: " + zeroPrefix);
             messageID = deserialized.messageID;
-            System.out.println("messageID has been deserialized: " + messageID);
+            System.out.println("Deserialized");
             return true;
         } catch (IOException | ClassNotFoundException e) {
             System.out.println("No blockchain found on device.");
@@ -72,7 +72,7 @@ public class Blockchain implements Serializable {
         for (int i = 0; i < repetitions; i++) {
             if (findLastBlock() == null) {  /* no blocks exist, serialization hasn't happened yet */
                 blockchain[0] = MinerExecutor.mineBlocks(zeroPrefix, null);
-                setZeroPrefix(blockchain[0].getGenerationTime());
+                zeroPrefix += setZeroPrefix(blockchain[0].getGenerationTime());
             } else {
                 if (findLastBlock().getId() == blockchain.length) {
                     resizeArray();
@@ -81,17 +81,39 @@ public class Blockchain implements Serializable {
                 try {
                     if (isValid(block)) {
                         blockchain[findLastBlock().getId()] = block;
-                        setZeroPrefix(findLastBlock().getGenerationTime());
+                        zeroPrefix += setZeroPrefix(findLastBlock().getGenerationTime());
                     }
-                } catch (InvalidBlockchain invalidBlockchain) {
-                    System.out.println(invalidBlockchain.getMessage());
+                } catch (InvalidBlockchain e) {
+                    System.out.println(e.getMessage());
                     // todo: Temp validation solution? If invalid, do ??
                 }
             }
         }
-        server.interrupt(); /* try's to interrupt the thread, we check for condition in while loop */
-        server.closeServer(); /* Closes the server if now connections have been made, as the code will be
-                                blocked on serverSocket.accept() */
+        /* try's to interrupt the thread, we check for condition in while loop */
+        server.interrupt();
+        /* Closes the server if no connections have been made, as the thread will be blocked on serverSocket.accept() */
+        server.closeServer();
+    }
+
+    /**
+     * Validate each block by comparing this Block's previousHash field to the preceding Block's
+     * hash field in the Blockchain array. Any Message objects contained in the Block will be checked
+     * that the messageID field is > the preceding block. This prevents sending a copy of a message with
+     * the same signature, as the messageID will not be in sync.
+     * @param block the generated Block must be valid before being placed in the Blockchain
+     * @exception InvalidBlockchain exception */
+    private boolean isValid(Block block) throws InvalidBlockchain {
+        if (block.getPrevBlockHash().equals(blockchain[block.getId() - 2].getHash())) {
+            List<Message> messageList = block.getMessageList();
+            for (int i = 0; i < messageList.size() - 1; i++) {
+                if (!(messageList.get(i).getMessageID() < messageList.get(i + 1).getMessageID())) {
+                    throw new InvalidBlockchain("Message ID invalid");
+                }
+            }
+            return true;
+        } else {
+            throw new InvalidBlockchain("Block hashes invalid");
+        }
     }
 
     public synchronized Supplier<Integer> messageIDIncrementer() {
@@ -102,37 +124,30 @@ public class Blockchain implements Serializable {
         };
     }
 
-    public static Queue<String> getMessageQueue() {
+    public static Queue<Message> getMessageQueue() {
         return messagesList;
     }
 
     /** Sets the zeroPrefix field according to the length of time a Block is generating.
      * This should stabilise the generation time to prevent exponential growth of
      * generating a Block. Replaces user input defined zeroPrefix. */
-    private void setZeroPrefix(int generationTime) {
+    public int setZeroPrefix(int generationTime) {
+        if (zeroPrefix >= 6) { // FIXME: 17/10/2020 remove, find another method to keep generation time low
+            zeroPrefix = 6;
+            return 0;
+        }
         if (generationTime < 15) {
-            zeroPrefix++;
-            if (zeroPrefix == 7) { // fixme: temp to stop very long generation time
-                zeroPrefix = 6;
-            }
-            return;
+//            zeroPrefix++;
+            System.out.println("The zero prefix of the hash has been increased to " + zeroPrefix);
+            return 1;
         }
         if (generationTime > 60) {
-            zeroPrefix--;
+//            zeroPrefix--;
+            System.out.println("The zero prefix of the hash has been decreased to " + zeroPrefix);
+            return -1;
         }
-    }
-
-    /**
-     * Validate each block by comparing this Block's previousHash field to the preceding Block's
-     * hash field in the Blockchain array
-     * @param block the generated Block must be valid before being placed in the Blockchain
-     * @exception InvalidBlockchain exception */
-    private boolean isValid(Block block) throws InvalidBlockchain {
-        if (block.getPrevBlockHash().equals(blockchain[block.getId() - 2].getHash())) {
-            return true;
-        } else {
-            throw new InvalidBlockchain();
-        }
+        System.out.println("The zero prefix of the hash stays the same at " + zeroPrefix);
+        return 0;
     }
 
     private Block findLastBlock() {

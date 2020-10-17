@@ -36,7 +36,7 @@ public class Client extends Thread implements Observable {
         ) {
             notifyConnectionStatus(true);
             objectOut.writeInt(1); // so Server ObjectInputStream knows we're sending the publicKey object
-            objectOut.writeObject(Keys.getPublic().getEncoded());
+            objectOut.writeObject(KeyUtils.getPublic().getEncoded());
             String serverResponse;
             while (true) {
                 if (in.ready()) {
@@ -49,6 +49,7 @@ public class Client extends Thread implements Observable {
                     } else if (serverResponse.equals("1")) {
                         notifyKeyResponse(true);
                         serverResponse = in.readLine();
+                        notifyMsgID(Integer.parseInt(serverResponse));
                         System.err.println("This is the first messageID: " + serverResponse); // todo: we receive msgID for first time
                     } else {
                         notifyServerResponse(serverResponse);
@@ -60,6 +61,7 @@ public class Client extends Thread implements Observable {
                     Message message = messages.pop();
                     objectOut.writeObject(message.getList());
                     serverResponse = in.readLine(); // todo: each time we send a msg we receive a new msgID
+                    notifyMsgID(Integer.parseInt(serverResponse));
                     System.err.println("This is the next messageID: " + serverResponse);
                 }
             }
@@ -103,5 +105,10 @@ public class Client extends Thread implements Observable {
     @Override
     public void notifyKeyResponse(boolean hasKey) {
         observers.forEach(observer -> observer.keyNotification(hasKey));
+    }
+
+    @Override
+    public void notifyMsgID(int id) {
+        observers.forEach(observer -> observer.updatedMsgID(id));
     }
 }

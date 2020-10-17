@@ -1,7 +1,7 @@
 package Controller;
 
 import Utils.Client;
-import Utils.Keys;
+import Utils.KeyUtils;
 import Utils.Observer;
 import View.ClientView;
 import model.Message;
@@ -20,6 +20,8 @@ public class Controller implements Observer {
     private final ClientView view;
     private Message model;
     private Client serverMessenger;
+
+    private int messageID;
 
     public Controller(Message model, ClientView view) {
         this.model = model;
@@ -61,7 +63,8 @@ public class Controller implements Observer {
             @Override
             public void keyReleased(KeyEvent e) {}
         });
-
+        // todo: implement listeners for host name and port buttons
+        // todo: serialize so we can keep settings
         generateKeys();
         startConnection();
     }
@@ -69,12 +72,12 @@ public class Controller implements Observer {
     /* Creates the public and private keys needed to sign the message before sending to server */
     private void generateKeys() {
         /* Prevent unnecessary creation of keys */ // todo: make sure keys valid/regenerate keys
-        if (Files.exists(Path.of(Keys.publicKeyPath)) && Files.exists(Path.of(Keys.privateKeyPath))) {
+        if (Files.exists(Path.of(KeyUtils.publicKeyPath)) && Files.exists(Path.of(KeyUtils.privateKeyPath))) {
             return;
         }
-        Keys gk;
+        KeyUtils gk;
         try {
-            gk = new Keys(1024);
+            gk = new KeyUtils(1024);
             gk.createKeys();
             gk.writeToFile(true, gk.getPublicKey().getEncoded());
             gk.writeToFile(false, gk.getPrivateKey().getEncoded());
@@ -92,7 +95,10 @@ public class Controller implements Observer {
     }
 
     private void sendMessage() {
-        model = new Message(view.getNameButtonText(), view.getMsgTextArea().getText().trim(), Keys.privateKeyPath);
+        model = new Message(view.getNameButtonText()
+                , view.getMsgTextArea().getText().trim()
+                , KeyUtils.privateKeyPath
+                , messageID);
         view.getMsgTextArea().setText(""); // clear the text after sending
         serverMessenger.addMessage(model);
     }
@@ -122,5 +128,10 @@ public class Controller implements Observer {
             return;
         }
         view.setPublicKeyStatus(false);
+    }
+
+    @Override
+    public void updatedMsgID(int id) {
+        this.messageID = id;
     }
 }

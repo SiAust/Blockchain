@@ -1,5 +1,10 @@
 package io.github.siaust.Utils;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import io.github.siaust.Model.Message;
+
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.PrintWriter;
@@ -17,7 +22,7 @@ public class Server extends Thread {
     private ObjectInputStream objectIn;
 
 
-    private final Queue<String> messagesList;
+    private final Queue<Message> messagesList;
     boolean running = true;
     private final int port;
 
@@ -30,7 +35,7 @@ public class Server extends Thread {
      * messages from the client. It verifies the messages using the public key received from the client.
      * @param messagesList a reference to the messagesList object in the Controller class. We add messages
      * here and the controller will pass to Block when called */
-    public Server(Queue<String> messagesList, Supplier<Integer> msgIDSupplier) {
+    public Server(Queue<Message> messagesList, Supplier<Integer> msgIDSupplier) {
         super("Block-Messenger");
         this.messagesList = messagesList;
         this.port = 8080;
@@ -48,7 +53,6 @@ public class Server extends Thread {
 
             String inputLine;
             while (running) {
-//                System.out.println("hello from run!");
                 if (Thread.currentThread().isInterrupted()) {
                     running = false;
                     out.println("-1");
@@ -71,10 +75,14 @@ public class Server extends Thread {
                 if (messageType == 2) {
                     if ((list = (List<byte[]>) objectIn.readObject()) != null) {
                         if (KeyUtils.verifySignature(list)) {
-                            inputLine = new String(list.get(0));
-                            messagesList.add(inputLine);
+                            Gson gson = new Gson();
+                            JsonParser jsonParser = new JsonParser();
+                            JsonObject jsonObject = (JsonObject) jsonParser.parse(new String(list.get(0)));
+                            Message message = gson.fromJson(jsonObject, Message.class);
+
+                            messagesList.add(message);
                             out.println(msgIDSupplier.get()); // send the next generated messageID to client
-                            out.println("Message accepted: " + inputLine);
+                            out.println("Message accepted: " + message.getMsgContent());
                         } else {
                             out.println("Message rejected: signature or ID invalid");
                         }
@@ -92,7 +100,7 @@ public class Server extends Thread {
         } finally {
             try {
                 serverSocket.close();
-                clientSocket.close();
+                clientSocket.close(); // fixme: NPE if no connections made
                 out.close();
                 objectIn.close();
             } catch (IOException e) {

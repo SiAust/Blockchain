@@ -2,8 +2,6 @@ package View;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.time.LocalTime;
 
 public class ClientView extends JFrame {
@@ -50,16 +48,33 @@ public class ClientView extends JFrame {
 
         /* name setting panel */
         JPanel nameSettingPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-//            nameSettingPanel.setBackground(new Color(0x872929));
         nameSettingPanel.setSize(new Dimension(100, 60));
 
         JLabel nameLabel = new JLabel("Name:");
-//        nameLabel.setPreferredSize(buttonSize);
-        nameButton = new JButton("anon");
-//        nameButton.setBackground(blue);
+        nameButton = new JButton("Simon Aust");
 
         nameSettingPanel.add(nameLabel);
         nameSettingPanel.add(nameButton);
+        
+        /* host name panel */
+        JPanel hostNamePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        hostNamePanel.setSize(new Dimension(100, 60));
+
+        JLabel hostLabel = new JLabel("Host:");
+        JButton hostButton = new JButton("192.168.1.1");
+
+        hostNamePanel.add(hostLabel);
+        hostNamePanel.add(hostButton);
+        
+        /* host port panel */
+        JPanel hostPortPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        hostPortPanel.setSize(new Dimension(100, 60));
+
+        JLabel portLabel = new JLabel("Port:");
+        JButton portButton = new JButton("8080");
+
+        hostPortPanel.add(portLabel);
+        hostPortPanel.add(portButton);
 
         /* server status panel */
         JPanel serverStatusPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
@@ -84,9 +99,11 @@ public class ClientView extends JFrame {
         publicKeyPanel.add(publicKeyLabel);
         publicKeyPanel.add(this.publicKeyStatus);
 
-        JPanel westGridPanel = new JPanel(new GridLayout(5, 1));
+        JPanel westGridPanel = new JPanel(new GridLayout(6, 1));
         westGridPanel.setBorder(BorderFactory.createLineBorder(Color.GRAY));
         westGridPanel.add(nameSettingPanel);
+        westGridPanel.add(hostNamePanel);
+        westGridPanel.add(hostPortPanel);
         westGridPanel.add(publicKeyPanel);
         westGridPanel.add(serverStatusPanel);
 

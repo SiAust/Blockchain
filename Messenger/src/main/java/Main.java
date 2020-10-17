@@ -1,5 +1,5 @@
-import View.ClientView;
 import Controller.Controller;
+import View.ClientView;
 import model.Message;
 
 public class Main {
