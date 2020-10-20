@@ -8,17 +8,18 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.Supplier;
 
 public class MinerExecutor {
 
-    public static Block mineBlocks(int zeroPrefix, Block previousBlock) {
+    public static Block mineBlocks(int zeroPrefix, Block previousBlock, Supplier<Integer> msgIDSupplier) {
         ExecutorService executor = Executors.newFixedThreadPool(10);
 
         Block block = null;
         while (block == null) {
             List<Miner> collection = new ArrayList<>();
             for (int i = 0; i < 10; i++) {
-                collection.add(new Miner(zeroPrefix, previousBlock));
+                collection.add(new Miner(zeroPrefix, previousBlock, msgIDSupplier));
             }
             try {
                 block = executor.invokeAny(collection);

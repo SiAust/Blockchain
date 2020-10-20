@@ -18,5 +18,5 @@ blocks for the blockchain. This messenger uses digital
 signatures to authenticate communication. Public and private
 keys are generated using RSA cryptosystem. The public key is
 sent to the server, which is uses to decrypt the private key 
-encrypted message before adding the message to the block being
+encrypted transaction before adding the transaction to the block being
 generated.

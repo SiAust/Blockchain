@@ -5,26 +5,28 @@ import Utils.KeyUtils;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Message {
+public class TransactionRequest {
 
     List<byte[]> list; // todo should this be here?
 
-    private String name;
-    private String msgContent;
+    private String from;
+    private String to;
+    private long coins;
     private int messageID;
 
-    public Message() {}
+    public TransactionRequest() {}
 
-    public Message(String name, String msgContent, String keyFile, int messageID) {
+    public TransactionRequest(String from, String to, long coins, int messageID) {
         this.list = new ArrayList<>();
 
-        this.name = name;
-        this.msgContent = msgContent;
+        this.from = from;
+        this.to = to;
+        this.coins = coins;
         this.messageID = messageID;
 
         this.list.add(this.toString().getBytes()); // our message as a byte[]
         try {
-            this.list.add(KeyUtils.sign(this.toString(), keyFile)); // our signature
+            this.list.add(KeyUtils.sign(this.toString())); // our signature
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -40,8 +42,9 @@ public class Message {
      * string */
     @Override
     public String toString() {
-        return String.format("{\"name\":\"%s\"," +
-                "\"msgContent\":\"%s\"," +
-                "\"messageID\":%d}", name, msgContent, messageID);
+        return String.format("{\"from\":\"%s\"," +
+                "\"to\":\"%s\"," +
+                "\"coins\":%d," +
+                "\"messageID\":%d}", from, to, coins, messageID);
     }
 }

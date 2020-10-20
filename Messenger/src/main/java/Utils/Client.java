@@ -1,6 +1,6 @@
 package Utils;
 
-import model.Message;
+import model.TransactionRequest;
 
 import java.io.*;
 import java.net.Socket;
@@ -16,7 +16,7 @@ public class Client extends Thread implements Observable {
 
     private final String host;
     private final int port;
-    private final Stack<Message> messages = new Stack<>();
+    private final Stack<TransactionRequest> transactionRequests = new Stack<>();
 
     private final List<Observer> observers = new ArrayList<>();
 
@@ -56,10 +56,10 @@ public class Client extends Thread implements Observable {
                         System.out.println("Server received message: " + serverResponse);
                     }
                 }
-                if (!messages.isEmpty()) {
+                if (!transactionRequests.isEmpty()) {
                     objectOut.writeInt(2); // so ObjectInputStream knows we're sending the list object
-                    Message message = messages.pop();
-                    objectOut.writeObject(message.getList());
+                    TransactionRequest transactionRequest = transactionRequests.pop();
+                    objectOut.writeObject(transactionRequest.getList());
                     serverResponse = in.readLine(); // todo: each time we send a msg we receive a new msgID
                     notifyMsgID(Integer.parseInt(serverResponse));
                     System.err.println("This is the next messageID: " + serverResponse);
@@ -78,8 +78,8 @@ public class Client extends Thread implements Observable {
         }
     }
 
-    public void addMessage(Message message) {
-        messages.add(message);
+    public void addMessage(TransactionRequest transactionRequest) {
+        transactionRequests.add(transactionRequest);
     }
 
     @Override

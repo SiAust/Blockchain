@@ -36,14 +36,13 @@ public class KeyUtils {
         return this.publicKey;
     }
 
-    public void writeToFile(boolean isPublicKey, byte[] key) throws IOException {
-        File f = new File(isPublicKey ? publicKeyPath : privateKeyPath);
-        f.getParentFile().mkdirs();
 
-        FileOutputStream fos = new FileOutputStream(f);
-        fos.write(key);
-        fos.flush();
-        fos.close();
+    // The method that signs the data using the private key that is stored in keyFile path
+    public static byte[] sign(String data) throws InvalidKeyException, Exception {
+        Signature rsa = Signature.getInstance("SHA1withRSA");
+        rsa.initSign(getPrivate());
+        rsa.update(data.getBytes());
+        return rsa.sign();
     }
 
     /** Gets the public key from a file */
@@ -55,19 +54,21 @@ public class KeyUtils {
     }
 
     // Method to retrieve the Private Key from a file
-    private static PrivateKey getPrivate(String filename) throws Exception {
-        byte[] keyBytes = Files.readAllBytes(new File(filename).toPath());
+    private static PrivateKey getPrivate() throws Exception {
+        byte[] keyBytes = Files.readAllBytes(new File(privateKeyPath).toPath());
         PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(keyBytes);
         KeyFactory kf = KeyFactory.getInstance("RSA");
         return kf.generatePrivate(spec);
     }
 
-    // The method that signs the data using the private key that is stored in keyFile path
-    public static byte[] sign(String data, String keyFile) throws InvalidKeyException, Exception {
-        Signature rsa = Signature.getInstance("SHA1withRSA");
-        rsa.initSign(getPrivate(keyFile));
-        rsa.update(data.getBytes());
-        return rsa.sign();
+    public void writeToFile(boolean isPublicKey, byte[] key) throws IOException {
+        File f = new File(isPublicKey ? publicKeyPath : privateKeyPath);
+        f.getParentFile().mkdirs();
+
+        FileOutputStream fos = new FileOutputStream(f);
+        fos.write(key);
+        fos.flush();
+        fos.close();
     }
 
     // Method to write a List of byte[] to a file

@@ -4,7 +4,7 @@ import Utils.Client;
 import Utils.KeyUtils;
 import Utils.Observer;
 import View.ClientView;
-import model.Message;
+import model.TransactionRequest;
 
 import javax.swing.*;
 import java.awt.event.KeyEvent;
@@ -18,12 +18,12 @@ import java.security.NoSuchProviderException;
 public class Controller implements Observer {
 
     private final ClientView view;
-    private Message model;
+    private TransactionRequest model;
     private Client serverMessenger;
 
     private int messageID;
 
-    public Controller(Message model, ClientView view) {
+    public Controller(TransactionRequest model, ClientView view) {
         this.model = model;
         this.view = view;
     }
@@ -95,9 +95,9 @@ public class Controller implements Observer {
     }
 
     private void sendMessage() {
-        model = new Message(view.getNameButtonText()
-                , view.getMsgTextArea().getText().trim()
-                , KeyUtils.privateKeyPath
+        model = new TransactionRequest(view.getNameButtonText() // from account name
+                , view.getMsgTextArea().getText().trim() // to account name
+                , 100L // amount to send
                 , messageID);
         view.getMsgTextArea().setText(""); // clear the text after sending
         serverMessenger.addMessage(model);

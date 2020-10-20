@@ -1,6 +1,8 @@
 package io.github.siaust.Model;
 
 import io.github.siaust.Exception.InvalidBlockchain;
+import io.github.siaust.Model.VirtualCoin.Accounts;
+import io.github.siaust.Model.VirtualCoin.Transaction;
 import io.github.siaust.Utils.MinerExecutor;
 import io.github.siaust.Utils.SerializationUtils;
 import io.github.siaust.Utils.Server;
@@ -21,11 +23,13 @@ public class Blockchain implements Serializable {
     private int zeroPrefix = 0;
     private final String FILEPATH = ".\\blockchain.data";
 
-    public static volatile Queue<Message> messagesList = new ArrayDeque<>();
+    public static volatile Queue<Transaction> transactions = new ArrayDeque<>();
     private final Random random = new Random();
     private volatile int messageID = 1;
 
-    public Blockchain() {
+    public static Accounts accounts;
+
+    public Blockchain() { // todo: convert to singleton, we don't want multiple instances of our Blockchain!
     }
 
     public void initialise() {
@@ -40,23 +44,26 @@ public class Blockchain implements Serializable {
 
     private boolean serialize() {
         try {
+            accounts.serializeAccounts();
             SerializationUtils.serialize(this, FILEPATH);
             return true;
         } catch (IOException e) {
+            e.printStackTrace();
             return false;
         }
     }
 
     private boolean deserialize() {
+        accounts = new Accounts();
         try {
             Blockchain deserialized = (Blockchain) SerializationUtils.deserialize(FILEPATH);
             blockchain = deserialized.getBlockchain().clone();
             zeroPrefix = deserialized.zeroPrefix;
             messageID = deserialized.messageID;
-            System.out.println("Deserialized");
+            System.out.println("Blockchain deserialized");
             return true;
         } catch (IOException | ClassNotFoundException e) {
-            System.out.println("No blockchain found on device.");
+            System.out.println("No blockchain found on device");
             return false;
         }
     }
@@ -66,22 +73,24 @@ public class Blockchain implements Serializable {
     }
 
     public void addBlock(int repetitions) {
-        Server server = new Server(messagesList, messageIDIncrementer());
+        Server server = new Server(transactions, messageIDIncrementer());
         server.start();
 
         for (int i = 0; i < repetitions; i++) {
             if (findLastBlock() == null) {  /* no blocks exist, serialization hasn't happened yet */
-                blockchain[0] = MinerExecutor.mineBlocks(zeroPrefix, null);
+                blockchain[0] = MinerExecutor.mineBlocks(zeroPrefix, null, messageIDIncrementer());
                 zeroPrefix += setZeroPrefix(blockchain[0].getGenerationTime());
+                System.out.println("The zero prefix is set to " + zeroPrefix);
             } else {
                 if (findLastBlock().getId() == blockchain.length) {
                     resizeArray();
                 }
-                Block block = MinerExecutor.mineBlocks(zeroPrefix, findLastBlock());
+                Block block = MinerExecutor.mineBlocks(zeroPrefix, findLastBlock(), messageIDIncrementer());
                 try {
                     if (isValid(block)) {
                         blockchain[findLastBlock().getId()] = block;
                         zeroPrefix += setZeroPrefix(findLastBlock().getGenerationTime());
+                        System.out.println("The zero prefix is set to " + zeroPrefix);
                     }
                 } catch (InvalidBlockchain e) {
                     System.out.println(e.getMessage());
@@ -104,9 +113,9 @@ public class Blockchain implements Serializable {
      * @exception InvalidBlockchain exception */
     private boolean isValid(Block block) throws InvalidBlockchain {
         if (block.getPrevBlockHash().equals(blockchain[block.getId() - 2].getHash())) {
-            List<Message> messageList = block.getMessageList();
-            for (int i = 0; i < messageList.size() - 1; i++) {
-                if (!(messageList.get(i).getMessageID() < messageList.get(i + 1).getMessageID())) {
+            List<Transaction> transactionList = block.getMessageList();
+            for (int i = 0; i < transactionList.size() - 1; i++) {
+                if (!(transactionList.get(i).getMessageID() < transactionList.get(i + 1).getMessageID())) {
                     throw new InvalidBlockchain("Message ID invalid");
                 }
             }
@@ -124,29 +133,20 @@ public class Blockchain implements Serializable {
         };
     }
 
-    public static Queue<Message> getMessageQueue() {
-        return messagesList;
+    public static Queue<Transaction> getTransactionQueue() {
+        return transactions;
     }
 
     /** Sets the zeroPrefix field according to the length of time a Block is generating.
      * This should stabilise the generation time to prevent exponential growth of
      * generating a Block. Replaces user input defined zeroPrefix. */
     public int setZeroPrefix(int generationTime) {
-        if (zeroPrefix >= 6) { // FIXME: 17/10/2020 remove, find another method to keep generation time low
-            zeroPrefix = 6;
-            return 0;
-        }
-        if (generationTime < 15) {
-//            zeroPrefix++;
-            System.out.println("The zero prefix of the hash has been increased to " + zeroPrefix);
+        if (generationTime < 2) {
             return 1;
         }
-        if (generationTime > 60) {
-//            zeroPrefix--;
-            System.out.println("The zero prefix of the hash has been decreased to " + zeroPrefix);
+        if (generationTime > 5) {
             return -1;
         }
-        System.out.println("The zero prefix of the hash stays the same at " + zeroPrefix);
         return 0;
     }
 

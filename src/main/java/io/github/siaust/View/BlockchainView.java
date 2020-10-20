@@ -20,6 +20,6 @@ public class BlockchainView {
     }
 
     public void printMessages() {
-        Blockchain.getMessageQueue().forEach(System.out::println);
+        Blockchain.getTransactionQueue().forEach(System.out::println);
     }
 }
