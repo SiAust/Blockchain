@@ -12,7 +12,6 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.List;
 import java.util.Queue;
-import java.util.function.Supplier;
 
 public class Server extends Thread {
 
@@ -29,18 +28,18 @@ public class Server extends Thread {
     private List<byte[]> list;
     private byte[] publicKey;
 
-    private Supplier<Integer> msgIDSupplier;
+//    private Supplier<Integer> msgIDSupplier;
 
     /** This constructor is for creating a runnable instance ServerSocket which listens for
      * messages from the client. It verifies the messages using the public key received from the client.
      * @param transactions a reference to the transactions object in the Controller class. We add messages
      * here and the controller will pass to Block when called */
-    public Server(Queue<Transaction> transactions, Supplier<Integer> msgIDSupplier) {
+    public Server(Queue<Transaction> transactions) {
         super("Blockchain-Server");
         this.transactions = transactions;
         this.port = 8080;
 
-        this.msgIDSupplier = msgIDSupplier;
+//        this.msgIDSupplier = msgIDSupplier;
     }
 
     @Override
@@ -67,7 +66,7 @@ public class Server extends Thread {
                     if ((publicKey = (byte[]) objectIn.readObject()) != null) {
                         out.println("1");
                         KeyUtils.writeToFile(publicKey);
-                        out.println(msgIDSupplier.get()); // send the generated messageID to client
+                        out.println(Blockchain.getMessageID()); // send the generated messageID to client
                     } // fixme: sent msgID updated and serialized, but if client doesn't send a msg?
                 }
                 /* If the value of readInt is two then we are receiving a list object (message + signature) next */
@@ -83,7 +82,7 @@ public class Server extends Thread {
                                     jsonObject.get("messageID").getAsInt());    // messageID
 
                             transactions.add(transaction);
-                            out.println(msgIDSupplier.get()); // send the next generated messageID to client
+                            out.println(Blockchain.getMessageID()); // send the next generated messageID to client
                             out.println("Transaction accepted: " + transaction);
                         } else {
                             out.println("Transaction rejected: signature or ID invalid");

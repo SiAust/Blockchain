@@ -9,7 +9,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Random;
-import java.util.function.Supplier;
 
 public class Block implements Serializable {
 
@@ -20,18 +19,18 @@ public class Block implements Serializable {
     private final long timestamp;
     private final String minerID;
 
-    private int generationTime;
+    private float generationTime;
     private String nAdjustmentString;
 
     private final int zeroPrefix;
     private int magicNumber;
 
-    private final Supplier<Integer> msgIDSupplier;
+//    private final Supplier<Integer> msgIDSupplier;
 
     private final List<Transaction> transactionList = new ArrayList<>(); // Ref to our transactions from client inc. msgID
     private final String messages;
 
-    public Block(int id, String prevBlockHash, int zeroPrefix, String minerID, Supplier<Integer> msgIDSupplier) throws InterruptedException {
+    public Block(int id, String prevBlockHash, int zeroPrefix, String minerID) throws InterruptedException {
         this.zeroPrefix = zeroPrefix;
         timestamp = new Date().getTime();
         this.id = id;
@@ -39,12 +38,12 @@ public class Block implements Serializable {
         hash = generateHash();
         this.minerID = minerID;
         messages = getTransactions();
-        this.msgIDSupplier = msgIDSupplier;
+//        this.msgIDSupplier = msgIDSupplier;
 
         transactionList.add(new Transaction(Blockchain.accounts.getOrCreateAccount("Blockchain")
                 , Blockchain.accounts.getOrCreateAccount(minerID)
                 , 100
-                , msgIDSupplier.get()));
+                , Blockchain.getMessageID()));
     }
 
     private String generateHash() throws InterruptedException {
@@ -73,11 +72,11 @@ public class Block implements Serializable {
             hash = StringUtil.applySha256(magicNumber + hashString);
         }
 
-        generationTime = LocalTime.now().toSecondOfDay() - startTime.toSecondOfDay();
+        generationTime = (float) (LocalTime.now().toNanoOfDay() - startTime.toNanoOfDay()) / 1000000000;
 
-        if (generationTime < 2) { // fixme get this method from Blockchain somehow. zeroPrefix set to negative?
+        if (generationTime < 0.01) { // fixme get this method from Blockchain somehow. zeroPrefix set to negative?
             nAdjustmentString = "\nN was increased to " + (zeroPrefix + 1);
-        } else if (generationTime > 5) {
+        } else if (generationTime > 0.1) {
             nAdjustmentString = "\nN was decreased to " + (zeroPrefix - 1);
         } else {
             nAdjustmentString = "\nN stays the same";
@@ -111,11 +110,12 @@ public class Block implements Serializable {
         return prevBlockHash;
     }
 
-    public int getGenerationTime() {
+    /** @return The generation time in nanoseconds */
+    public float getGenerationTime() {
         return generationTime;
     }
 
-    public List<Transaction> getMessageList() { return transactionList; }
+    public List<Transaction> getTransactionList() { return transactionList; }
 
     @Override
     public String toString() {

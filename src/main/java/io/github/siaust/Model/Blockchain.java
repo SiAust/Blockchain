@@ -13,7 +13,6 @@ import java.util.ArrayDeque;
 import java.util.List;
 import java.util.Queue;
 import java.util.Random;
-import java.util.function.Supplier;
 
 public class Blockchain implements Serializable {
 
@@ -24,8 +23,10 @@ public class Blockchain implements Serializable {
     private final String FILEPATH = ".\\blockchain.data";
 
     public static volatile Queue<Transaction> transactions = new ArrayDeque<>();
-    private final Random random = new Random();
+
+    private static final Random random = new Random();
     private volatile int messageID = 1;
+    private static int msgIDStatic;
 
     public static Accounts accounts;
 
@@ -45,6 +46,7 @@ public class Blockchain implements Serializable {
     private boolean serialize() {
         try {
             accounts.serializeAccounts();
+            messageID = msgIDStatic;
             SerializationUtils.serialize(this, FILEPATH);
             return true;
         } catch (IOException e) {
@@ -60,6 +62,7 @@ public class Blockchain implements Serializable {
             blockchain = deserialized.getBlockchain().clone();
             zeroPrefix = deserialized.zeroPrefix;
             messageID = deserialized.messageID;
+            msgIDStatic = messageID; // so we can use the static method, and still serialize our msgID
             System.out.println("Blockchain deserialized");
             return true;
         } catch (IOException | ClassNotFoundException e) {
@@ -73,28 +76,29 @@ public class Blockchain implements Serializable {
     }
 
     public void addBlock(int repetitions) {
-        Server server = new Server(transactions, messageIDIncrementer());
+        Server server = new Server(transactions);
         server.start();
 
         for (int i = 0; i < repetitions; i++) {
             if (findLastBlock() == null) {  /* no blocks exist, serialization hasn't happened yet */
-                blockchain[0] = MinerExecutor.mineBlocks(zeroPrefix, null, messageIDIncrementer());
-                zeroPrefix += setZeroPrefix(blockchain[0].getGenerationTime());
+                blockchain[0] = MinerExecutor.mineBlocks(zeroPrefix, null);
+                setZeroPrefix(blockchain[0].getGenerationTime());
                 System.out.println("The zero prefix is set to " + zeroPrefix);
             } else {
                 if (findLastBlock().getId() == blockchain.length) {
                     resizeArray();
                 }
-                Block block = MinerExecutor.mineBlocks(zeroPrefix, findLastBlock(), messageIDIncrementer());
+                Block block = MinerExecutor.mineBlocks(zeroPrefix, findLastBlock());
                 try {
                     if (isValid(block)) {
                         blockchain[findLastBlock().getId()] = block;
-                        zeroPrefix += setZeroPrefix(findLastBlock().getGenerationTime());
+                        setZeroPrefix(findLastBlock().getGenerationTime());
+                        /* carry out transactions as block is valid and placed into blockchain */
+                        block.getTransactionList().forEach(Transaction::completeTransaction);
                         System.out.println("The zero prefix is set to " + zeroPrefix);
                     }
                 } catch (InvalidBlockchain e) {
                     System.out.println(e.getMessage());
-                    // todo: Temp validation solution? If invalid, do ??
                 }
             }
         }
@@ -113,7 +117,7 @@ public class Blockchain implements Serializable {
      * @exception InvalidBlockchain exception */
     private boolean isValid(Block block) throws InvalidBlockchain {
         if (block.getPrevBlockHash().equals(blockchain[block.getId() - 2].getHash())) {
-            List<Transaction> transactionList = block.getMessageList();
+            List<Transaction> transactionList = block.getTransactionList();
             for (int i = 0; i < transactionList.size() - 1; i++) {
                 if (!(transactionList.get(i).getMessageID() < transactionList.get(i + 1).getMessageID())) {
                     throw new InvalidBlockchain("Message ID invalid");
@@ -125,13 +129,19 @@ public class Blockchain implements Serializable {
         }
     }
 
-    public synchronized Supplier<Integer> messageIDIncrementer() {
+    public static synchronized int getMessageID() { // package private
+//        int number = random.nextInt(10) + 1 + msgIDStatic; // +1 as nextInt() could return 0
+//        msgIDStatic = number;
+        return msgIDStatic = random.nextInt(10) + 1 + msgIDStatic;
+    }
+
+    /*public synchronized Supplier<Integer> messageIDIncrementer() {
         return () -> {
             int number = random.nextInt(10) + 1 + messageID; // +1 as nextInt() could return 0
             messageID = number;
             return number;
         };
-    }
+    }*/
 
     public static Queue<Transaction> getTransactionQueue() {
         return transactions;
@@ -140,14 +150,16 @@ public class Blockchain implements Serializable {
     /** Sets the zeroPrefix field according to the length of time a Block is generating.
      * This should stabilise the generation time to prevent exponential growth of
      * generating a Block. Replaces user input defined zeroPrefix. */
-    public int setZeroPrefix(int generationTime) {
-        if (generationTime < 2) {
-            return 1;
+    public void setZeroPrefix(float generationTime) {
+        System.out.println("Generation time: " + (float) generationTime/1000000000 );
+        if (generationTime < 0.01) { // 1/100th sec
+            zeroPrefix += 1;
         }
-        if (generationTime > 5) {
-            return -1;
+        if (generationTime > 0.1) { // 1/10th sec
+            if (zeroPrefix > 0) {
+                zeroPrefix -= 1;
+            }
         }
-        return 0;
     }
 
     private Block findLastBlock() {

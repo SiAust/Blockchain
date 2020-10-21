@@ -12,14 +12,14 @@ import java.util.function.Supplier;
 
 public class MinerExecutor {
 
-    public static Block mineBlocks(int zeroPrefix, Block previousBlock, Supplier<Integer> msgIDSupplier) {
+    public static Block mineBlocks(int zeroPrefix, Block previousBlock) {
         ExecutorService executor = Executors.newFixedThreadPool(10);
 
         Block block = null;
         while (block == null) {
             List<Miner> collection = new ArrayList<>();
             for (int i = 0; i < 10; i++) {
-                collection.add(new Miner(zeroPrefix, previousBlock, msgIDSupplier));
+                collection.add(new Miner(zeroPrefix, previousBlock));
             }
             try {
                 block = executor.invokeAny(collection);
