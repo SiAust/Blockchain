@@ -1,18 +1,20 @@
 package io.github.siaust.Utils;
 
-import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import io.github.siaust.Model.Message;
+import io.github.siaust.Model.Blockchain;
+import io.github.siaust.Model.VirtualCoin.Account;
+import io.github.siaust.Model.VirtualCoin.Accounts;
+import io.github.siaust.Model.VirtualCoin.Transaction;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
-import java.util.function.Supplier;
 
 public class Server extends Thread {
 
@@ -21,26 +23,26 @@ public class Server extends Thread {
     private PrintWriter out;
     private ObjectInputStream objectIn;
 
-
-    private final Queue<Message> messagesList;
+    private final Queue<Transaction> transactions;
     boolean running = true;
     private final int port;
 
     private List<byte[]> list;
     private byte[] publicKey;
 
-    private Supplier<Integer> msgIDSupplier;
+    private Accounts accounts;
+
+//    private Supplier<Integer> msgIDSupplier;
 
     /** This constructor is for creating a runnable instance ServerSocket which listens for
      * messages from the client. It verifies the messages using the public key received from the client.
-     * @param messagesList a reference to the messagesList object in the Controller class. We add messages
+     * @param transactions a reference to the transactions object in the Controller class. We add messages
      * here and the controller will pass to Block when called */
-    public Server(Queue<Message> messagesList, Supplier<Integer> msgIDSupplier) {
-        super("Block-Messenger");
-        this.messagesList = messagesList;
+    public Server(Queue<Transaction> transactions, Accounts accounts) {
+        super("Blockchain-Server");
+        this.transactions = transactions;
+        this.accounts = accounts;
         this.port = 8080;
-
-        this.msgIDSupplier = msgIDSupplier;
     }
 
     @Override
@@ -51,11 +53,11 @@ public class Server extends Thread {
             out = new PrintWriter(clientSocket.getOutputStream(), true);
             objectIn = new ObjectInputStream(clientSocket.getInputStream());
 
-            String inputLine;
             while (running) {
                 if (Thread.currentThread().isInterrupted()) {
                     running = false;
                     out.println("-1");
+                    out.println(formatAccountsToJSON()); // send updated accounts as JSON string
                     throw new InterruptedException(Thread.currentThread().getName() + ": Server thread terminated");
                 }
                 int messageType = 0;
@@ -63,34 +65,38 @@ public class Server extends Thread {
                     messageType = objectIn.readInt();
                 }
                 /* The client sends a int to identify the forthcoming object to be received. If
-                 * the int has value of zero, we will next receive the public key object */
+                 * the int has value of one, we will next receive the public key object */
                 if (messageType == 1) {
                     if ((publicKey = (byte[]) objectIn.readObject()) != null) {
                         out.println("1");
                         KeyUtils.writeToFile(publicKey);
-                        out.println(msgIDSupplier.get()); // send the generated messageID to client
+                        out.println(Blockchain.getMessageID()); // send the generated messageID to client
+                        out.println(formatAccountsToJSON()); // send all the accounts as JSON object string
                     } // fixme: sent msgID updated and serialized, but if client doesn't send a msg?
                 }
-                /* If the value of readInt is one then we are receiving a list object (message + signature) next */
+                /* If the value of readInt is two then we are receiving a list object (message + signature) next */
                 if (messageType == 2) {
                     if ((list = (List<byte[]>) objectIn.readObject()) != null) {
                         if (KeyUtils.verifySignature(list)) {
-                            Gson gson = new Gson();
                             JsonParser jsonParser = new JsonParser();
                             JsonObject jsonObject = (JsonObject) jsonParser.parse(new String(list.get(0)));
-                            Message message = gson.fromJson(jsonObject, Message.class);
+                            Transaction transaction = new Transaction(
+                                    Blockchain.accounts.getOrCreateAccount(jsonObject.get("from").getAsString()),       // account from
+                                    Blockchain.accounts.getOrCreateAccount(jsonObject.get("to").getAsString()),         // account to
+                                    jsonObject.get("coins").getAsLong(),        // coins
+                                    jsonObject.get("messageID").getAsInt());    // messageID
 
-                            messagesList.add(message);
-                            out.println(msgIDSupplier.get()); // send the next generated messageID to client
-                            out.println("Message accepted: " + message.getMsgContent());
+                            transactions.add(transaction);
+                            out.println(Blockchain.getMessageID()); // send the next generated messageID to client
+                            out.println("Transaction accepted");
                         } else {
-                            out.println("Message rejected: signature or ID invalid");
+                            out.println("Transaction rejected: signature or ID invalid");
                         }
                     }
                 }
             }
         } catch (IOException e) {
-            System.err.println("The server socket closed in the try/catch block");
+            System.out.println("The server socket closed in the try/catch block");
         } catch (InterruptedException e) {
 //            e.printStackTrace();
         } catch (ClassNotFoundException e) {
@@ -104,9 +110,26 @@ public class Server extends Thread {
                 out.close();
                 objectIn.close();
             } catch (IOException e) {
-                System.err.println("The server socket closed in the finally block");
+                System.out.println("The server socket closed in the finally block");
+            } catch (NullPointerException e) {
+                System.out.println("NPE in the Server thread");
             }
         }
+    }
+
+    private String formatAccountsToJSON() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("{\"accounts\": [");
+        List<Account> list = new ArrayList<>(accounts.getAccounts().values());
+        for (int i = 0; i < list.size(); i++) {
+            sb.append(list.get(i));
+            if (i < list.size() - 1) {
+                sb.append(",");
+            } else {
+                sb.append("]}");
+            }
+        }
+        return sb.toString();
     }
 
     /** This is to force the ServerSocket to close if being blocked by the accept() method */

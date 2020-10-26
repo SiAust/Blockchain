@@ -1,5 +1,6 @@
 package io.github.siaust.Model;
 
+import io.github.siaust.Model.VirtualCoin.Transaction;
 import io.github.siaust.Utils.StringUtil;
 
 import java.io.Serializable;
@@ -12,19 +13,20 @@ import java.util.Random;
 public class Block implements Serializable {
 
     private static final long serialVersionUID = -7337081154260328260L;
+
     private final int id;
     private final String hash;
     private final String prevBlockHash;
     private final long timestamp;
     private final String minerID;
 
-    private int generationTime;
+    private float generationTime;
     private String nAdjustmentString;
 
     private final int zeroPrefix;
     private int magicNumber;
 
-    private final List<Message> messageList = new ArrayList<>(); // Holds all our messages from client inc. msgID
+    private final List<Transaction> transactionList = new ArrayList<>(); // Ref to our transactions from client inc. msgID
     private final String messages;
 
     public Block(int id, String prevBlockHash, int zeroPrefix, String minerID) throws InterruptedException {
@@ -34,11 +36,16 @@ public class Block implements Serializable {
         this.prevBlockHash = prevBlockHash;
         hash = generateHash();
         this.minerID = minerID;
-        messages = getMessages();
+        messages = getTransactions();
+
+        transactionList.add(new Transaction(Blockchain.accounts.getOrCreateAccount("Blockchain")
+                , Blockchain.accounts.getOrCreateAccount(minerID)
+                , 100
+                , Blockchain.getMessageID()));
     }
 
     private String generateHash() throws InterruptedException {
-        Thread.sleep(1);
+        Thread.sleep(1); // fixme why? To throw Thread exception?
         LocalTime startTime = LocalTime.now();
 
         Random random = new Random();
@@ -63,10 +70,11 @@ public class Block implements Serializable {
             hash = StringUtil.applySha256(magicNumber + hashString);
         }
 
-        generationTime = LocalTime.now().toSecondOfDay() - startTime.toSecondOfDay();
-        if (generationTime < 15) {
+        generationTime = (float) (LocalTime.now().toNanoOfDay() - startTime.toNanoOfDay()) / 1000000000;
+
+        if (generationTime < 1) { // fixme get this method from Blockchain somehow. zeroPrefix set to negative?
             nAdjustmentString = "\nN was increased to " + (zeroPrefix + 1);
-        } else if (generationTime > 60) {
+        } else if (generationTime > 5) {
             nAdjustmentString = "\nN was decreased to " + (zeroPrefix - 1);
         } else {
             nAdjustmentString = "\nN stays the same";
@@ -74,19 +82,16 @@ public class Block implements Serializable {
         return hash;
     }
 
-    private String getMessages() {
-        if (Blockchain.getMessageQueue().isEmpty()) {
-            return "no messages";
+    private String getTransactions() {
+        if (Blockchain.getTransactionQueue().isEmpty()) {
+            return "No transactions";
         }
         StringBuilder sb = new StringBuilder();
-        for (int i = Blockchain.getMessageQueue().size(); i > 0; i--) {
-            Message message = Blockchain.getMessageQueue().poll();
-            messageList.add(message);
+        for (int i = Blockchain.getTransactionQueue().size(); i > 0; i--) {
+            Transaction transaction = Blockchain.getTransactionQueue().poll();
+            transactionList.add(transaction);
 
-            String formatted = String.format("%s: %s",
-                        message.getName(),
-                        message.getMsgContent());
-            sb.append(String.format("\n%s", formatted));
+            sb.append(String.format("\n%s", transaction));
         }
         return sb.toString();
     }
@@ -103,16 +108,18 @@ public class Block implements Serializable {
         return prevBlockHash;
     }
 
-    public int getGenerationTime() {
+    /** @return The generation time to 10 decimal places (1/billionth of a sec) */
+    public float getGenerationTime() {
         return generationTime;
     }
 
-    public List<Message> getMessageList() { return messageList; }
+    public List<Transaction> getTransactionList() { return transactionList; }
 
     @Override
     public String toString() {
         return "Block:"
-                + "\nCreated by miner # " + minerID
+                + "\nCreated by: " + minerID
+                + "\n" + minerID + " gets 100 VC"
                 + "\nId: " + id
                 + "\nTimestamp: " + timestamp
                 + "\nMagic number: " + magicNumber

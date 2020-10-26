@@ -1,31 +1,44 @@
 package View;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+
 import javax.swing.*;
 import java.awt.*;
 import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.List;
 
 public class ClientView extends JFrame {
 
     private JButton nameButton;
     private JButton connect;
     private JButton send;
+    private JButton hostButton;
+    private JButton portButton;
 
-    private JTextArea msgTextArea;
     private JTextArea serverReply;
 
     private JLabel serverState;
     private JLabel publicKeyStatus;
+    private JPanel accountsPanel;
+    private DefaultListModel<String> listModel;
+    private JLabel recipientLabel;
+    private JSpinner coinsSpinner;
 
     public void displayFrame() {
 
         Color blue = new Color(106, 143, 205);
         Dimension buttonSize = new Dimension(100, 30);
 
-        setTitle("Blockchain Messenger");
+        setTitle("Blockchain Coin Messenger");
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
-        setPreferredSize(new Dimension(800, 400));
+        setPreferredSize(new Dimension(800, 600));
         setResizable(false);
         setLocationRelativeTo(null);
+
         /* Top level container so we can have some padding between the JFrame */
         JPanel container = new JPanel(new GridLayout());
         container.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
@@ -33,7 +46,7 @@ public class ClientView extends JFrame {
         connect = new JButton("Connect");
         connect.setPreferredSize(buttonSize);
 
-        send = new JButton("Send");
+        send = new JButton("Send coins");
         send.setPreferredSize(buttonSize);
 
         /* Containers */
@@ -55,23 +68,23 @@ public class ClientView extends JFrame {
 
         nameSettingPanel.add(nameLabel);
         nameSettingPanel.add(nameButton);
-        
+
         /* host name panel */
         JPanel hostNamePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         hostNamePanel.setSize(new Dimension(100, 60));
 
         JLabel hostLabel = new JLabel("Host:");
-        JButton hostButton = new JButton("192.168.1.1");
+        hostButton = new JButton("localhost");
 
         hostNamePanel.add(hostLabel);
         hostNamePanel.add(hostButton);
-        
+
         /* host port panel */
         JPanel hostPortPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         hostPortPanel.setSize(new Dimension(100, 60));
 
         JLabel portLabel = new JLabel("Port:");
-        JButton portButton = new JButton("8080");
+        portButton = new JButton("8080");
 
         hostPortPanel.add(portLabel);
         hostPortPanel.add(portButton);
@@ -109,17 +122,62 @@ public class ClientView extends JFrame {
 
 
         /* eastContainer components */
-        JLabel instructions = new JLabel("Input text message below:");
+        JLabel accountsHeading = new JLabel("Virtual coin accounts:");
+        JLabel transHeading = new JLabel("Send coins:");
 
-        msgTextArea = new JTextArea();
-        msgTextArea.setLineWrap(true);
-//        msgTextArea.setPreferredSize(new Dimension(200, 50)); // fixme doesn't alter anything
-//        msgTextArea.setBackground(new Color(0x577EAA));
+        JPanel headingsPanel = new JPanel(new GridLayout(0, 2));
+        headingsPanel.add(accountsHeading);
+        headingsPanel.add(transHeading);
 
-        JScrollPane msgScrollPane = new JScrollPane(msgTextArea);
-        msgScrollPane.createHorizontalScrollBar();
-        msgScrollPane.setPreferredSize(new Dimension(300, 50));
+        JPanel accountsContainer = new JPanel(new GridLayout(0, 2));
+        accountsContainer.setPreferredSize(new Dimension(200, 200));
 
+        /* Accounts panel */
+        accountsPanel = new JPanel(new GridLayout(0, 1));
+        JScrollPane accountsScroll = new JScrollPane(accountsPanel);
+
+        listModel = new DefaultListModel<>();
+        JList<String> list = new JList<>(listModel);
+        list.addListSelectionListener(e -> {
+            if (list.getSelectedIndex() != -1) {
+                recipientLabel.setText(list.getSelectedValue().split("::")[0].trim());
+            }
+        });
+        accountsPanel.add(list);
+
+        /* Send virtual coins panel */
+        JPanel sendPanel = new JPanel(new GridLayout(4, 1));
+        sendPanel.setBorder(BorderFactory.createLineBorder(Color.GRAY));
+
+        JLabel sendLabel = new JLabel("Recipient:");
+        JPanel sndLabPanel = new JPanel();
+        sndLabPanel.add(sendLabel);
+
+        recipientLabel = new JLabel("[Choose from list]");
+        recipientLabel.setForeground(blue);
+        JPanel recipientPanel = new JPanel();
+        recipientPanel.add(recipientLabel);
+
+        SpinnerNumberModel model = new SpinnerNumberModel(1, 1, 100, 1);
+        coinsSpinner = new JSpinner(model);
+        coinsSpinner.setPreferredSize(buttonSize);
+        System.out.println("[" + ClientView.class.getSimpleName() + "] ");
+
+        JPanel spinnerPanel = new JPanel();
+        spinnerPanel.add(coinsSpinner);
+
+        JPanel coinPanel = new JPanel();
+        coinPanel.add(send);
+
+        sendPanel.add(sndLabPanel);
+        sendPanel.add(recipientPanel);
+        sendPanel.add(spinnerPanel);
+        sendPanel.add(coinPanel);
+
+        accountsContainer.add(accountsScroll);
+        accountsContainer.add(sendPanel);
+
+        /* Server reply panels */
         JLabel serverMsg = new JLabel("Server response: ");
 
         serverReply = new JTextArea();
@@ -130,20 +188,19 @@ public class ClientView extends JFrame {
         serverReplyScrollPane.setPreferredSize(new Dimension(300, 50));
 
         /* Seems to stop serverMsg label floating right when text entered into msgTextArea */
-        msgScrollPane.setAlignmentX(Component.LEFT_ALIGNMENT);
+        accountsContainer.setAlignmentX(Component.LEFT_ALIGNMENT);
         serverMsg.setAlignmentX(Component.LEFT_ALIGNMENT);
         serverReplyScrollPane.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         JPanel centerContainer = new JPanel();
         centerContainer.setLayout(new BoxLayout(centerContainer, BoxLayout.Y_AXIS));
 
-        centerContainer.add(msgScrollPane);
+        centerContainer.add(accountsContainer);
         centerContainer.add(serverMsg);
         centerContainer.add(serverReplyScrollPane);
 
         JPanel eastBtnPanel = new JPanel(new FlowLayout());
         eastBtnPanel.add(connect);
-        eastBtnPanel.add(send);
 
         /* Adding components to panels */
 
@@ -152,7 +209,7 @@ public class ClientView extends JFrame {
         westContainer.add(westGridPanel);
 
         /* east */
-        eastContainer.add(instructions, BorderLayout.NORTH);
+        eastContainer.add(headingsPanel, BorderLayout.NORTH);
         eastContainer.add(centerContainer, BorderLayout.CENTER);
         eastContainer.add(eastBtnPanel, BorderLayout.SOUTH);
 
@@ -170,6 +227,18 @@ public class ClientView extends JFrame {
         return nameButton;
     }
 
+    public JButton getHostButton() {
+        return hostButton;
+    }
+
+    public JButton getPortButton() {
+        return portButton;
+    }
+
+    public String getRecipient() { return recipientLabel.getText(); }
+
+    public JSpinner getCoinSpinner() { return coinsSpinner; }
+
     public JButton getConnect() {
         return connect;
     }
@@ -182,8 +251,8 @@ public class ClientView extends JFrame {
         return publicKeyStatus;
     }
 
-    public JTextArea getMsgTextArea() {
-        return msgTextArea;
+    public String getNameButtonText() {
+        return this.nameButton.getText();
     }
 
     public void setServerResponse(String response) {
@@ -192,8 +261,17 @@ public class ClientView extends JFrame {
                 serverReply.getText() + "\n" + response : response); /* ternary prevents line break on 1st msg */
     }
 
-    public String getNameButtonText() {
-        return this.nameButton.getText();
+    public void setListModel(String JSON) {
+        listModel.clear();
+        JsonObject jsonObject = new JsonParser().parse(JSON).getAsJsonObject();
+        JsonArray jsonArray = jsonObject.getAsJsonArray("accounts");
+        List<String> list = new ArrayList<>();
+        for (JsonElement e : jsonArray) {
+            JsonObject jo = e.getAsJsonObject();
+            list.add(String.format("%s :: %d", jo.get("account_holder").getAsString(),
+                    jo.get("account_balance").getAsInt()));
+        }
+        listModel.addAll(list);
     }
 
     public void setNameButtonText(String name) {

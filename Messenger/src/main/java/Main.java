@@ -1,12 +1,12 @@
 import Controller.Controller;
 import View.ClientView;
-import model.Message;
+import model.TransactionRequest;
 
 public class Main {
 
     public static void main(String[] args) {
         // todo pass args to model for host and port
-        Message model = new Message(); // fixme pass null to Controller? Or?
+        TransactionRequest model = new TransactionRequest(); // fixme pass null to Controller? Or?
         ClientView view = new ClientView();
 
         Controller controller = new Controller(model, view);

@@ -12,11 +12,12 @@ impossible to alter a block in the Blockchain as new blocks are added faster tha
 entire blockchain if tampering with a individual block.
 
 ### Blockchain Messenger
-A Java Swing GUI client that sends messages to 
+A Java Swing GUI client that sends transactions to 
 a server, using a Socket endpoint, which is generating 
 blocks for the blockchain. This messenger uses digital 
 signatures to authenticate communication. Public and private
 keys are generated using RSA cryptosystem. The public key is
-sent to the server, which is uses to decrypt the private key 
-encrypted message before adding the message to the block being
+sent to the server, which it uses to decrypt the private key 
+encrypted transaction before adding the transaction to the block being
 generated.
+
