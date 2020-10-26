@@ -2,7 +2,7 @@ package io.github.siaust.Model.VirtualCoin;
 
 import java.io.Serializable;
 
-public class Account implements Serializable {
+public class Account implements Serializable, Comparable<Account> {
 
     private static final long serialVersionUID = 6346637387496540407L;
 
@@ -43,6 +43,12 @@ public class Account implements Serializable {
 
     @Override
     public String toString() {
-        return String.format("Account holder: %s\nAccount balance: %d", this.owner, this.balance);
+        return String.format("{\"account_holder\":\"%s\"," +
+                "\"account_balance\":%d}", this.owner, this.balance);
+    }
+
+    @Override
+    public int compareTo(Account o) {
+        return Integer.compare((int) o.balance, (int) this.balance);
     }
 }

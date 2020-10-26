@@ -7,4 +7,5 @@ public interface Observable {
     void notifyConnectionStatus(boolean bool);
     void notifyKeyResponse(boolean hasKey);
     void notifyMsgID(int id);
+    void notifyAccountsJSON(String JSON);
 }

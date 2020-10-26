@@ -13,6 +13,7 @@ import java.util.Random;
 public class Block implements Serializable {
 
     private static final long serialVersionUID = -7337081154260328260L;
+
     private final int id;
     private final String hash;
     private final String prevBlockHash;
@@ -25,8 +26,6 @@ public class Block implements Serializable {
     private final int zeroPrefix;
     private int magicNumber;
 
-//    private final Supplier<Integer> msgIDSupplier;
-
     private final List<Transaction> transactionList = new ArrayList<>(); // Ref to our transactions from client inc. msgID
     private final String messages;
 
@@ -38,7 +37,6 @@ public class Block implements Serializable {
         hash = generateHash();
         this.minerID = minerID;
         messages = getTransactions();
-//        this.msgIDSupplier = msgIDSupplier;
 
         transactionList.add(new Transaction(Blockchain.accounts.getOrCreateAccount("Blockchain")
                 , Blockchain.accounts.getOrCreateAccount(minerID)
@@ -74,9 +72,9 @@ public class Block implements Serializable {
 
         generationTime = (float) (LocalTime.now().toNanoOfDay() - startTime.toNanoOfDay()) / 1000000000;
 
-        if (generationTime < 0.01) { // fixme get this method from Blockchain somehow. zeroPrefix set to negative?
+        if (generationTime < 1) { // fixme get this method from Blockchain somehow. zeroPrefix set to negative?
             nAdjustmentString = "\nN was increased to " + (zeroPrefix + 1);
-        } else if (generationTime > 0.1) {
+        } else if (generationTime > 5) {
             nAdjustmentString = "\nN was decreased to " + (zeroPrefix - 1);
         } else {
             nAdjustmentString = "\nN stays the same";
@@ -110,7 +108,7 @@ public class Block implements Serializable {
         return prevBlockHash;
     }
 
-    /** @return The generation time in nanoseconds */
+    /** @return The generation time to 10 decimal places (1/billionth of a sec) */
     public float getGenerationTime() {
         return generationTime;
     }
@@ -121,7 +119,7 @@ public class Block implements Serializable {
     public String toString() {
         return "Block:"
                 + "\nCreated by: " + minerID
-                + "\n" + minerID + " gets 100 VC" // blockchain itself awards this 100 coins?
+                + "\n" + minerID + " gets 100 VC"
                 + "\nId: " + id
                 + "\nTimestamp: " + timestamp
                 + "\nMagic number: " + magicNumber

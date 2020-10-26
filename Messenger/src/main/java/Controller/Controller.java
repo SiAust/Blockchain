@@ -7,8 +7,7 @@ import View.ClientView;
 import model.TransactionRequest;
 
 import javax.swing.*;
-import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
+import java.awt.*;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -21,7 +20,12 @@ public class Controller implements Observer {
     private TransactionRequest model;
     private Client serverMessenger;
 
+    private String host;
+    private int port;
+
     private int messageID;
+
+    private int coins = 1;
 
     public Controller(TransactionRequest model, ClientView view) {
         this.model = model;
@@ -29,41 +33,44 @@ public class Controller implements Observer {
     }
 
     public void init() {
+        host = "localhost";
+        port = 8080;
+
         view.displayFrame();
         view.getConnect().addActionListener(e -> {
-            System.out.println("View Connect button pressed");
-        });
-        view.getNameButton().addActionListener(e -> {
-            System.out.println("View Name button pressed");
-            String name = JOptionPane.showInputDialog("Input your name");
-            view.setNameButtonText(name != null && name.length() > 0 ? name :
-                    view.getNameButtonText().length() > 0 ? view.getNameButtonText() : "anon");
-        });
-        view.getSend().addActionListener(e -> {
-            System.out.println("View Send button pressed");
-            sendMessage();
-        });
-        view.getConnect().addActionListener(e -> {
+            System.out.println("[" + Controller.class.getSimpleName() + "] View connect button pressed");
             startConnection();
         });
-        view.getMsgTextArea().addKeyListener(new KeyListener() {
-            @Override
-            public void keyTyped(KeyEvent e) {}
-
-            @Override
-            public void keyPressed(KeyEvent e) {
-                if (e.getKeyCode() == KeyEvent.VK_ENTER && e.isControlDown()) {
-                    if (view.getSend().isEnabled()) {
-                        sendMessage();
-                        view.getMsgTextArea().setCaretPosition(0);
-                    }
-                }
-            }
-
-            @Override
-            public void keyReleased(KeyEvent e) {}
+        view.getHostButton().addActionListener(e -> {
+            String host = JOptionPane.showInputDialog("Input host address");
+            this.host = host;
+            setButtonText(view.getHostButton(), host);
         });
-        // todo: implement listeners for host name and port buttons
+        view.getPortButton().addActionListener(e -> {
+            int port;
+            try { // fixme: cancel button returns ? null? throws exception, bit weird
+                port = Integer.parseInt(JOptionPane.showInputDialog("Input port number"));
+                this.port = port;
+                view.getPortButton().setText(String.valueOf(port));
+            } catch (NumberFormatException numberFormatException) {
+                JOptionPane.showMessageDialog(view.getPortButton(), "Invalid port number!");
+            } catch (HeadlessException headlessException) {
+                headlessException.printStackTrace();
+            }
+        });
+        view.getNameButton().addActionListener(e -> {
+            System.out.println("[" + Controller.class.getSimpleName() + "] View name button pressed");
+            String name = JOptionPane.showInputDialog("Input your name");
+            setButtonText(view.getNameButton(), name);
+        });
+        view.getSend().addActionListener(e -> {
+            System.out.println("[" + Controller.class.getSimpleName() + "] Send button pressed");
+            sendMessage(); // fixme: only send message when valid recipient selected
+        });
+        view.getCoinSpinner().addChangeListener(e -> {
+            coins = Integer.parseInt(view.getCoinSpinner().getValue().toString());
+            System.out.println("[" + Controller.class.getSimpleName() + "] coinSpinner: " + view.getCoinSpinner().getValue().toString());
+        });
         // todo: serialize so we can keep settings
         generateKeys();
         startConnection();
@@ -88,19 +95,28 @@ public class Controller implements Observer {
         }
     }
 
+    private void setAccountsList(String JSON) {
+        view.setListModel(JSON);
+    }
+
     private void startConnection() {
-        serverMessenger = new Client(8080);
+        serverMessenger = new Client(host, port);
         serverMessenger.start();
         serverMessenger.addObserver(this);
     }
 
-    private void sendMessage() {
+    private void sendMessage() { // fixme: lag only on first click
         model = new TransactionRequest(view.getNameButtonText() // from account name
-                , view.getMsgTextArea().getText().trim() // to account name
-                , 100L // amount to send
+                , view.getRecipient() // to account name
+                , coins // amount to send
                 , messageID);
-        view.getMsgTextArea().setText(""); // clear the text after sending
         serverMessenger.addMessage(model);
+    }
+
+    private void setButtonText(JButton button, String s) {
+        if (s != null && s.length() > 0 ) {
+            button.setText(s);
+        }
     }
 
     private void setServerResponse(String response) {
@@ -133,5 +149,10 @@ public class Controller implements Observer {
     @Override
     public void updatedMsgID(int id) {
         this.messageID = id;
+    }
+
+    @Override
+    public void updateAccountsJSON(String JSON) {
+        setAccountsList(JSON);
     }
 }

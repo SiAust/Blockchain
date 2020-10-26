@@ -3,6 +3,8 @@ package io.github.siaust.Utils;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import io.github.siaust.Model.Blockchain;
+import io.github.siaust.Model.VirtualCoin.Account;
+import io.github.siaust.Model.VirtualCoin.Accounts;
 import io.github.siaust.Model.VirtualCoin.Transaction;
 
 import java.io.IOException;
@@ -10,6 +12,7 @@ import java.io.ObjectInputStream;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
 
@@ -20,7 +23,6 @@ public class Server extends Thread {
     private PrintWriter out;
     private ObjectInputStream objectIn;
 
-
     private final Queue<Transaction> transactions;
     boolean running = true;
     private final int port;
@@ -28,18 +30,19 @@ public class Server extends Thread {
     private List<byte[]> list;
     private byte[] publicKey;
 
+    private Accounts accounts;
+
 //    private Supplier<Integer> msgIDSupplier;
 
     /** This constructor is for creating a runnable instance ServerSocket which listens for
      * messages from the client. It verifies the messages using the public key received from the client.
      * @param transactions a reference to the transactions object in the Controller class. We add messages
      * here and the controller will pass to Block when called */
-    public Server(Queue<Transaction> transactions) {
+    public Server(Queue<Transaction> transactions, Accounts accounts) {
         super("Blockchain-Server");
         this.transactions = transactions;
+        this.accounts = accounts;
         this.port = 8080;
-
-//        this.msgIDSupplier = msgIDSupplier;
     }
 
     @Override
@@ -54,6 +57,7 @@ public class Server extends Thread {
                 if (Thread.currentThread().isInterrupted()) {
                     running = false;
                     out.println("-1");
+                    out.println(formatAccountsToJSON()); // send updated accounts as JSON string
                     throw new InterruptedException(Thread.currentThread().getName() + ": Server thread terminated");
                 }
                 int messageType = 0;
@@ -67,6 +71,7 @@ public class Server extends Thread {
                         out.println("1");
                         KeyUtils.writeToFile(publicKey);
                         out.println(Blockchain.getMessageID()); // send the generated messageID to client
+                        out.println(formatAccountsToJSON()); // send all the accounts as JSON object string
                     } // fixme: sent msgID updated and serialized, but if client doesn't send a msg?
                 }
                 /* If the value of readInt is two then we are receiving a list object (message + signature) next */
@@ -83,7 +88,7 @@ public class Server extends Thread {
 
                             transactions.add(transaction);
                             out.println(Blockchain.getMessageID()); // send the next generated messageID to client
-                            out.println("Transaction accepted: " + transaction);
+                            out.println("Transaction accepted");
                         } else {
                             out.println("Transaction rejected: signature or ID invalid");
                         }
@@ -110,6 +115,21 @@ public class Server extends Thread {
                 System.out.println("NPE in the Server thread");
             }
         }
+    }
+
+    private String formatAccountsToJSON() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("{\"accounts\": [");
+        List<Account> list = new ArrayList<>(accounts.getAccounts().values());
+        for (int i = 0; i < list.size(); i++) {
+            sb.append(list.get(i));
+            if (i < list.size() - 1) {
+                sb.append(",");
+            } else {
+                sb.append("]}");
+            }
+        }
+        return sb.toString();
     }
 
     /** This is to force the ServerSocket to close if being blocked by the accept() method */

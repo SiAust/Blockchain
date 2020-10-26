@@ -5,4 +5,5 @@ public interface Observer {
     void connectionNotification(boolean isConnected);
     void keyNotification(boolean hasKey);
     void updatedMsgID(int id);
+    void updateAccountsJSON(String accountsJSON);
 }

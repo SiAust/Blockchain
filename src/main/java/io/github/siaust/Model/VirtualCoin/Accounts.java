@@ -18,42 +18,50 @@ public class Accounts implements Serializable {
         deserializeAccounts();
     }
 
-    public boolean deserializeAccounts() {
+    public void deserializeAccounts() {
         try {
             Accounts accounts = (Accounts) SerializationUtils.deserialize(FILEPATH);
             accountsList = accounts.getAccounts();
-            accountsList.forEach((k, v) -> System.out.println(v));
+//            try {
+//                accountsList.entrySet()
+//                        .stream()
+//                        .sorted(Map.Entry.comparingByKey())
+//                        .forEach(e -> System.out.println(e.getValue())); // sort in alphabetical order
+//            } catch (Exception e) {
+////                e.printStackTrace();
+//            }
             System.out.println("Accounts deserialized");
-            return true;
         } catch (IOException | ClassNotFoundException e) {
             /* No accounts exist so we create a Blockchain account with lots of coins */
-            accountsList.put("Blockchain", new Account("Blockchain", Long.MAX_VALUE));
-            System.out.println("No accounts.data found");
+            accountsList.put("Blockchain", new Account("Blockchain", 10_000));
+            System.out.println("No accounts found");
 //            e.printStackTrace();
         }
-        return false;
     }
 
-    public boolean serializeAccounts() {
+    public void serializeAccounts() {
         try {
             SerializationUtils.serialize(this, FILEPATH);
             System.out.println("Accounts serialized");
-            return true;
+            // fixme: causes ArrayOutOfBounds Exception on first serialization
+//            accountsList.entrySet()
+//                    .stream()
+//                    .sorted(Map.Entry.comparingByKey())
+//                    .forEach(e -> System.out.println(e.getValue())); // sort in alphabetical order
         } catch (IOException e) {
             e.printStackTrace();
         }
-        return false;
     }
 
     public Account getOrCreateAccount(String name) {
        if (accountsList.containsKey(name)) {
            return accountsList.get(name);
        }
-       accountsList.put(name, new Account(name, 100L));
+       accountsList.put(name, new Account(name, 100)); // All new accounts credited with 100 coins
        return accountsList.get(name);
     }
 
-    private Map<String, Account> getAccounts() {
+    public Map<String, Account> getAccounts() {
         return this.accountsList;
     }
 }

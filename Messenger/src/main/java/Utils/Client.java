@@ -20,10 +20,9 @@ public class Client extends Thread implements Observable {
 
     private final List<Observer> observers = new ArrayList<>();
 
-    // todo: allow host/port params
-    public Client(int port) {
+    public Client(String host, int port) {
         super("ClientServer-Thread-" + port);
-        this.host = "localhost";
+        this.host = host;
         this.port = port;
     }
 
@@ -45,24 +44,27 @@ public class Client extends Thread implements Observable {
                         notifyConnectionStatus(false);
                         notifyKeyResponse(false);
                         notifyServerResponse("Server connection closed");
+                        notifyServerResponse("Accounts updated");
+                        notifyAccountsJSON(in.readLine()); // updated accounts as JSON string
                         break;
                     } else if (serverResponse.equals("1")) {
                         notifyKeyResponse(true);
                         serverResponse = in.readLine();
                         notifyMsgID(Integer.parseInt(serverResponse));
-                        System.err.println("This is the first messageID: " + serverResponse); // todo: we receive msgID for first time
+                        notifyAccountsJSON(in.readLine()); // initial accounts JSON string
                     } else {
                         notifyServerResponse(serverResponse);
                         System.out.println("Server received message: " + serverResponse);
                     }
                 }
                 if (!transactionRequests.isEmpty()) {
-                    objectOut.writeInt(2); // so ObjectInputStream knows we're sending the list object
+                    objectOut.writeInt(2); // so server ObjectInputStream knows we're sending the list object
                     TransactionRequest transactionRequest = transactionRequests.pop();
                     objectOut.writeObject(transactionRequest.getList());
-                    serverResponse = in.readLine(); // todo: each time we send a msg we receive a new msgID
+
+                    serverResponse = in.readLine();
                     notifyMsgID(Integer.parseInt(serverResponse));
-                    System.err.println("This is the next messageID: " + serverResponse);
+//                    System.err.println("This is the next messageID: " + serverResponse);
                 }
             }
         } catch (UnknownHostException e) {
@@ -110,5 +112,10 @@ public class Client extends Thread implements Observable {
     @Override
     public void notifyMsgID(int id) {
         observers.forEach(observer -> observer.updatedMsgID(id));
+    }
+
+    @Override
+    public void notifyAccountsJSON(String accountsJSON) {
+        observers.forEach(observer -> observer.updateAccountsJSON(accountsJSON));
     }
 }

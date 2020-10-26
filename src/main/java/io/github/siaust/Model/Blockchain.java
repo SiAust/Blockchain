@@ -66,7 +66,7 @@ public class Blockchain implements Serializable {
             System.out.println("Blockchain deserialized");
             return true;
         } catch (IOException | ClassNotFoundException e) {
-            System.out.println("No blockchain found on device");
+            System.out.println("No blockchain found");
             return false;
         }
     }
@@ -76,26 +76,29 @@ public class Blockchain implements Serializable {
     }
 
     public void addBlock(int repetitions) {
-        Server server = new Server(transactions);
+        Server server = new Server(transactions, accounts);
         server.start();
 
         for (int i = 0; i < repetitions; i++) {
-            if (findLastBlock() == null) {  /* no blocks exist, serialization hasn't happened yet */
-                blockchain[0] = MinerExecutor.mineBlocks(zeroPrefix, null);
-                setZeroPrefix(blockchain[0].getGenerationTime());
-                System.out.println("The zero prefix is set to " + zeroPrefix);
+            Block block;
+            /* no blocks exist, serialization hasn't happened yet */
+            if (findLastBlock() == null) {
+                block = MinerExecutor.mineBlocks(zeroPrefix, null); // todo validate this block
+                blockchain[0] = block;
+                setZeroPrefix(block.getGenerationTime());
+                block.getTransactionList().forEach(Transaction::completeTransaction);
             } else {
                 if (findLastBlock().getId() == blockchain.length) {
                     resizeArray();
                 }
-                Block block = MinerExecutor.mineBlocks(zeroPrefix, findLastBlock());
+                block = MinerExecutor.mineBlocks(zeroPrefix, findLastBlock());
                 try {
                     if (isValid(block)) {
                         blockchain[findLastBlock().getId()] = block;
                         setZeroPrefix(findLastBlock().getGenerationTime());
                         /* carry out transactions as block is valid and placed into blockchain */
                         block.getTransactionList().forEach(Transaction::completeTransaction);
-                        System.out.println("The zero prefix is set to " + zeroPrefix);
+                        block.getTransactionList().forEach(System.out::println);
                     }
                 } catch (InvalidBlockchain e) {
                     System.out.println(e.getMessage());
@@ -129,19 +132,9 @@ public class Blockchain implements Serializable {
         }
     }
 
-    public static synchronized int getMessageID() { // package private
-//        int number = random.nextInt(10) + 1 + msgIDStatic; // +1 as nextInt() could return 0
-//        msgIDStatic = number;
+    public static synchronized int getMessageID() {
         return msgIDStatic = random.nextInt(10) + 1 + msgIDStatic;
     }
-
-    /*public synchronized Supplier<Integer> messageIDIncrementer() {
-        return () -> {
-            int number = random.nextInt(10) + 1 + messageID; // +1 as nextInt() could return 0
-            messageID = number;
-            return number;
-        };
-    }*/
 
     public static Queue<Transaction> getTransactionQueue() {
         return transactions;
@@ -151,15 +144,16 @@ public class Blockchain implements Serializable {
      * This should stabilise the generation time to prevent exponential growth of
      * generating a Block. Replaces user input defined zeroPrefix. */
     public void setZeroPrefix(float generationTime) {
-        System.out.println("Generation time: " + (float) generationTime/1000000000 );
-        if (generationTime < 0.01) { // 1/100th sec
+        if (generationTime < 1) { // 1/100th sec
             zeroPrefix += 1;
         }
-        if (generationTime > 0.1) { // 1/10th sec
+        if (generationTime > 5) { // 1/10th sec
             if (zeroPrefix > 0) {
                 zeroPrefix -= 1;
             }
         }
+//        System.out.println("Generation time: " + (float) generationTime/1000000000 );
+        System.out.println("The zero prefix is set to " + zeroPrefix);
     }
 
     private Block findLastBlock() {
