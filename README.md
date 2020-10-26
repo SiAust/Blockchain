@@ -21,3 +21,4 @@ sent to the server, which it uses to decrypt the private key
 encrypted transaction before adding the transaction to the block being
 generated.
 
+![Coin Messenger](https://github.com/SiAust/Blockchain/blob/master/messenger-gui.jpg)
